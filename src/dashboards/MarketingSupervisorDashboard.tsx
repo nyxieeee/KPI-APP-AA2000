@@ -61,6 +61,7 @@ import {
   Trophy,
   Calendar,
   Info,
+  Circle,
   AlertCircle,
   PhilippinePeso,
   Cpu,
@@ -1068,6 +1069,7 @@ const MarketingSupervisorDashboard: React.FC<Props> = ({
   const renderTeam = () => {
     const supervisorCount = sortedTeam.filter(m => m.isSupervisor || m.role === UserRole.SUPERVISOR).length;
     const employeeCount = sortedTeam.filter(m => m.role === UserRole.EMPLOYEE).length;
+    const activeCount = sortedTeam.filter((m: any) => m.isActive !== false).length;
     return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-lg border border-slate-100 shadow-sm">
@@ -1082,22 +1084,36 @@ const MarketingSupervisorDashboard: React.FC<Props> = ({
           <div className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl border border-blue-100">
             <span className="text-[9px] font-black uppercase tracking-wide">{sortedTeam.length} team members</span>
           </div>
+          <div className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100">
+            <span className="text-[9px] font-black uppercase tracking-wide">{activeCount} active</span>
+          </div>
         </div>
       </div>
-      <div className="relative group">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
-        <input
-          type="text"
-          placeholder="Search team members..."
-          className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/15 w-full transition-all focus:bg-white focus:border-blue-200"
-          value={teamSearchTerm}
-          onChange={(e) => setTeamSearchTerm(e.target.value)}
-        />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="bg-white rounded-lg border border-slate-100 p-4 shadow-sm">
+          <p className="text-[11px] font-semibold text-slate-500">Supervisors</p>
+          <p className="text-2xl font-black text-slate-900 tabular-nums leading-none mt-1">{supervisorCount}</p>
+        </div>
+        <div className="bg-white rounded-lg border border-slate-100 p-4 shadow-sm">
+          <p className="text-[11px] font-semibold text-slate-500">Employees</p>
+          <p className="text-2xl font-black text-slate-900 tabular-nums leading-none mt-1">{employeeCount}</p>
+        </div>
+        <div className="bg-white rounded-lg border border-slate-100 p-4 shadow-sm">
+          <p className="text-[11px] font-semibold text-slate-500">Active</p>
+          <p className="text-2xl font-black text-slate-900 tabular-nums leading-none mt-1">{activeCount}</p>
+        </div>
       </div>
-      <div className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-100">
-        <p className="text-[9px] font-black text-slate-500 uppercase tracking-wide">
-          {supervisorCount} Supervisor{supervisorCount !== 1 ? 's' : ''} · {employeeCount} Employee{employeeCount !== 1 ? 's' : ''}
-        </p>
+      <div className="bg-white rounded-lg border border-slate-100 p-3 shadow-sm">
+        <div className="relative group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-blue-600 transition-colors" />
+          <input
+            type="text"
+            placeholder="Search team members..."
+            className="pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-semibold text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/15 w-full transition-all focus:bg-white focus:border-blue-200"
+            value={teamSearchTerm}
+            onChange={(e) => setTeamSearchTerm(e.target.value)}
+          />
+        </div>
       </div>
       <div
         className="registry-list-scroll h-[19rem] min-h-[19rem] rounded-lg border border-slate-200 bg-slate-50/50 shadow-sm"
@@ -1135,7 +1151,12 @@ const MarketingSupervisorDashboard: React.FC<Props> = ({
                     <p className={`font-black text-slate-900 ${member.isSupervisor ? 'text-base' : 'text-sm'}`}>{member.name}</p>
                     {member.name === user.name && member.isSupervisor && <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[8px] font-black rounded uppercase">YOU</span>}
                   </div>
-                  <span className="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[9px] font-bold uppercase tracking-wide mt-1">{member.role}</span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 text-[9px] font-bold uppercase tracking-wide">{member.role}</span>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wide ${member.isActive !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
+                      <Circle className="w-2.5 h-2.5 fill-current" /> {member.isActive !== false ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
                 </div>
               </div>
               {member.isSupervisor && (
