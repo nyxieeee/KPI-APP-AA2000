@@ -5449,29 +5449,29 @@ const AdminDashboard: React.FC<Props> = ({
                       key={item.id}
                       type="button"
                       onClick={() => setActiveTab(item.id as AdminTab)}
-                      className={`group relative w-full flex items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30 ${
+                      className={`group relative w-full flex items-center gap-3 rounded-lg px-3 py-3 text-left border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30 ${
                         adminNavCollapsed ? 'justify-center' : ''
                       } ${
                         active
-                          ? 'bg-blue-900 text-white shadow-lg'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                          ? 'bg-blue-50 border-blue-200 text-blue-800 shadow-sm'
+                          : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                       }`}
                       title={adminNavCollapsed ? item.label : undefined}
                       aria-current={active ? 'page' : undefined}
                     >
                       <span
                         className={`flex h-10 w-10 items-center justify-center rounded-lg border shadow-sm transition-colors ${
-                          active ? 'border-white/15 bg-white/10' : 'border-slate-200 bg-white group-hover:bg-slate-50'
+                          active ? 'border-blue-200 bg-white' : 'border-slate-200 bg-white group-hover:bg-slate-50'
                         }`}
                       >
-                        <Icon className={`h-5 w-5 ${active ? 'text-white' : 'text-slate-700'}`} aria-hidden />
+                        <Icon className={`h-5 w-5 ${active ? 'text-blue-600' : 'text-slate-700'}`} aria-hidden />
                       </span>
                       {!adminNavCollapsed && (
                         <span className="min-w-0">
-                          <span className={`block text-[11px] font-black uppercase tracking-wide truncate ${active ? 'text-white' : 'text-slate-800'}`}>
+                          <span className={`block text-[11px] font-black uppercase tracking-wide truncate ${active ? 'text-blue-800' : 'text-slate-800'}`}>
                             {item.label}
                           </span>
-                          <span className={`block text-[9px] font-bold uppercase tracking-wide mt-0.5 ${active ? 'text-white/70' : 'text-slate-400'}`}>
+                          <span className={`block text-[9px] font-bold uppercase tracking-wide mt-0.5 ${active ? 'text-blue-600' : 'text-slate-400'}`}>
                             {item.id === 'registry'
                               ? 'Nodes & routing'
                               : item.id === 'validation'

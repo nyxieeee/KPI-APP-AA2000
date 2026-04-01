@@ -1747,6 +1747,17 @@ const TechnicalSupervisorDashboard: React.FC<Props> = ({
         </div>
       )}
 
+      <div
+        className={`mb-6 md:mb-8 flex flex-col gap-6 
+        -mt-4 sm:-mt-6 md:-mt-8 -mx-4 sm:-mx-6 md:-mx-8 px-4 sm:px-6 md:px-8
+        py-2 sm:py-6 md:py-8
+        lg:mx-0 lg:px-0 lg:mt-0 ${navCollapsed ? 'lg:pl-[92px]' : 'lg:pl-[272px]'}`}
+      >
+        <div>
+          <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-none">Technical Supervisor</h1>
+        </div>
+      </div>
+
       {/* Mobile navigation is now in the burger drawer */}
 
       <div className="hidden lg:block">

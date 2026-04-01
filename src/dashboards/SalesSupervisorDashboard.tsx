@@ -1755,7 +1755,7 @@ const SalesSupervisorDashboard: React.FC<Props> = ({
       )}
 
       <div
-        className={`mb-6 md:mb-8 flex flex-col gap-6 sticky top-0 z-40 bg-slate-50/90 backdrop-blur-md border-b border-slate-200/60 
+        className={`mb-6 md:mb-8 flex flex-col gap-6 
         -mt-4 sm:-mt-6 md:-mt-8 -mx-4 sm:-mx-6 md:-mx-8 px-4 sm:px-6 md:px-8
         py-2 sm:py-6 md:py-8
         lg:mx-0 lg:px-0 lg:mt-0 ${navCollapsed ? 'lg:pl-[92px]' : 'lg:pl-[272px]'}`}
