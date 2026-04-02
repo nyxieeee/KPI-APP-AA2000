@@ -7,6 +7,7 @@ import Navbar from './components/Navbar';
 import NotFound from './components/NotFound';
 import { AuthActionsProvider } from './contexts/AuthActionsContext';
 import { MobileSidenavProvider } from './contexts/MobileSidenavContext';
+import { RoleSidenavRailProvider } from './contexts/RoleSidenavRailContext';
 import {
   DEPARTMENT_WEIGHTS_STORAGE_KEY,
   loadDepartmentWeightsFromStorage,
@@ -508,17 +509,8 @@ const PREINSTALLED_MARKETING_PENDING_90: Transmission = { ...makeSeedTransmissio
 const PREINSTALLED_MARKETING_VALIDATED_90: Transmission = { ...makeSeedTransmission90(PREINSTALLED_MARKETING_AUDIT, { id: 'TX-MKT-VAL-90', daysAgo: 22, status: 'validated', allSalesData: MARKETING_ALL_SALES_DATA_90 }), department: 'Marketing' };
 const PREINSTALLED_MARKETING_REJECTED_90: Transmission = { ...makeSeedTransmission90(PREINSTALLED_MARKETING_AUDIT, { id: 'TX-MKT-REJ-90', daysAgo: 38, status: 'rejected', allSalesData: MARKETING_ALL_SALES_DATA_90 }), department: 'Marketing' };
 
-const initialPending = [PREINSTALLED_TECH_PENDING_90, PREINSTALLED_SALES_PENDING_90, PREINSTALLED_ACCOUNTING_PENDING_90, PREINSTALLED_MARKETING_PENDING_90];
-const initialHistory: Transmission[] = [
-  PREINSTALLED_TECH_VALIDATED_90,
-  PREINSTALLED_SALES_VALIDATED_90,
-  PREINSTALLED_ACCOUNTING_VALIDATED_90,
-  PREINSTALLED_MARKETING_VALIDATED_90,
-  PREINSTALLED_TECH_REJECTED_90,
-  PREINSTALLED_SALES_REJECTED_90,
-  PREINSTALLED_ACCOUNTING_REJECTED_90,
-  PREINSTALLED_MARKETING_REJECTED_90,
-];
+const initialPending: Transmission[] = [];
+const initialHistory: Transmission[] = [];
 
 const TRANSMISSIONS_STORAGE_KEY = 'aa2000_kpi_transmissions';
 
@@ -550,6 +542,16 @@ function saveStoredTransmissions(pending: Transmission[], history: Transmission[
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [auditBuckets, setAuditBuckets] = useState<AuditBuckets>(() => {
+    // One-time clear: wipe all pre-seeded/stored submission history on first boot after this version
+    const CLEARED_FLAG = 'aa2000_kpi_history_cleared_v4';
+    if (!localStorage.getItem(CLEARED_FLAG)) {
+      localStorage.removeItem('aa2000_kpi_audits_by_department');
+      localStorage.removeItem('aa2000_kpi_transmissions');
+      localStorage.removeItem('aa2000_kpi_department_weights');
+      localStorage.removeItem('aa2000_kpi_department_weights_standard');
+      localStorage.setItem(CLEARED_FLAG, '1');
+      return {};
+    }
     let buckets: AuditBuckets;
     const loaded = loadDepartmentBuckets();
     const hasAnyAudit =
@@ -580,46 +582,69 @@ const App: React.FC = () => {
 
   const DEFAULT_DEPARTMENT_WEIGHTS: DepartmentWeights = {
     Technical: [
-      { label: 'Project Execution Quality', weightPct: 40 },
-      { label: 'Client Satisfaction & Turnover', weightPct: 25 },
-      { label: 'Team Leadership & Accountability', weightPct: 15 },
-      { label: 'Sales Support & Lead Development', weightPct: 10 },
-      { label: 'Administrative Excellence', weightPct: 5 },
-      { label: 'Attendance & Discipline', weightPct: 5 },
+      { label: 'Project Execution Quality', weightPct: 40, content: [{ label: 'Back-job Rate', maxPoints: 20 }, { label: 'First-time Fix Rate', maxPoints: 20 }, { label: 'Compliance to Standards', maxPoints: 10 }, { label: 'Schedule Adherence', maxPoints: 10 }] },
+      { label: 'Client Satisfaction & Turnover', weightPct: 25, content: [{ label: 'Client Satisfaction Score', maxPoints: 15 }, { label: 'Client Retention Rate', maxPoints: 10 }] },
+      { label: 'Team Leadership & Accountability', weightPct: 15, content: [{ label: 'Team Coordination', maxPoints: 8 }, { label: 'Accountability & Ownership', maxPoints: 7 }] },
+      { label: 'Sales Support & Lead Development', weightPct: 10, content: [{ label: 'Sales Lead Contributions', maxPoints: 5 }, { label: 'Client Referrals', maxPoints: 5 }] },
+      { label: 'Administrative Excellence', weightPct: 5, content: [{ label: 'Report Accuracy & Timeliness', maxPoints: 5 }] },
+      { label: 'Attendance & Discipline', weightPct: 5, content: [{ label: 'Attendance Rate', maxPoints: 3 }, { label: 'Discipline & Conduct', maxPoints: 2 }] },
     ],
     IT: [
-      { label: 'System Reliability & Uptime', weightPct: 30 },
-      { label: 'Technical Support Quality', weightPct: 25 },
-      { label: 'Security & Compliance', weightPct: 20 },
-      { label: 'Project & Development Delivery', weightPct: 15 },
-      { label: 'Administrative Excellence', weightPct: 5 },
-      { label: 'Attendance & Discipline', weightPct: 5 },
+      { label: 'System Reliability & Uptime', weightPct: 30, content: [{ label: 'Uptime Percentage', maxPoints: 20 }, { label: 'Incident Prevention', maxPoints: 10 }] },
+      { label: 'Technical Support Quality', weightPct: 25, content: [{ label: 'Ticket Resolution Rate', maxPoints: 15 }, { label: 'User Satisfaction Score', maxPoints: 10 }] },
+      { label: 'Security & Compliance', weightPct: 20, content: [{ label: 'Security Audit Score', maxPoints: 12 }, { label: 'Policy Compliance', maxPoints: 8 }] },
+      { label: 'Project & Development Delivery', weightPct: 15, content: [{ label: 'On-time Delivery Rate', maxPoints: 10 }, { label: 'Project Quality Score', maxPoints: 5 }] },
+      { label: 'Administrative Excellence', weightPct: 5, content: [{ label: 'Documentation Quality', maxPoints: 5 }] },
+      { label: 'Attendance & Discipline', weightPct: 5, content: [{ label: 'Attendance Rate', maxPoints: 3 }, { label: 'Discipline & Conduct', maxPoints: 2 }] },
     ],
     Sales: [
-      { label: 'Revenue Score', weightPct: 40 },
-      { label: 'Accounts Score', weightPct: 20 },
-      { label: 'Activities Score', weightPct: 20 },
-      { label: 'Quotation Mgmt', weightPct: 10 },
-      { label: 'Attendance', weightPct: 5 },
-      { label: 'Additional Responsibility', weightPct: 5 },
+      { label: 'Revenue Score', weightPct: 40, content: [{ label: 'Revenue vs Target', maxPoints: 40 }] },
+      { label: 'Accounts Score', weightPct: 20, content: [{ label: 'Accounts Closed', maxPoints: 20 }] },
+      { label: 'Activities Score', weightPct: 20, content: [{ label: 'Meetings Conducted', maxPoints: 10 }, { label: 'Calls Made', maxPoints: 10 }] },
+      { label: 'Quotation Mgmt', weightPct: 10, content: [{ label: 'On-time Quotations', maxPoints: 5 }, { label: 'Error-free Quotations', maxPoints: 5 }] },
+      { label: 'Attendance', weightPct: 5, content: [{ label: 'Attendance Rate', maxPoints: 5 }] },
+      { label: 'Additional Responsibility', weightPct: 5, content: [{ label: 'Additional Tasks Completed', maxPoints: 5 }] },
     ],
     Marketing: [
-      { label: 'Campaign Execution & Quality', weightPct: 35 },
-      { label: 'Lead Generation & Sales Support', weightPct: 30 },
-      { label: 'Digital & Social Media Performance', weightPct: 25 },
-      { label: 'Additional Responsibilities', weightPct: 5 },
-      { label: 'Attendance & Discipline', weightPct: 5 },
+      { label: 'Campaign Execution & Quality', weightPct: 35, content: [{ label: 'Campaign Completion Rate', maxPoints: 20 }, { label: 'Creative Quality Score', maxPoints: 15 }] },
+      { label: 'Lead Generation & Sales Support', weightPct: 30, content: [{ label: 'Leads Generated', maxPoints: 20 }, { label: 'Sales Enablement Score', maxPoints: 10 }] },
+      { label: 'Digital & Social Media Performance', weightPct: 25, content: [{ label: 'Engagement Rate', maxPoints: 15 }, { label: 'Follower Growth', maxPoints: 10 }] },
+      { label: 'Additional Responsibilities', weightPct: 5, content: [{ label: 'Additional Tasks Completed', maxPoints: 5 }] },
+      { label: 'Attendance & Discipline', weightPct: 5, content: [{ label: 'Attendance Rate', maxPoints: 3 }, { label: 'Discipline & Conduct', maxPoints: 2 }] },
     ],
     Accounting: [
-      { label: 'Accounting Excellence', weightPct: 40 },
-      { label: 'Purchasing Excellence', weightPct: 30 },
-      { label: 'Administrative Excellence', weightPct: 25 },
-      { label: 'Additional Responsibility', weightPct: 3 },
-      { label: 'Attendance', weightPct: 2 },
+      { label: 'Accounting Excellence', weightPct: 40, content: [{ label: 'Financial Report Accuracy', maxPoints: 25 }, { label: 'Audit Compliance Score', maxPoints: 15 }] },
+      { label: 'Purchasing Excellence', weightPct: 30, content: [{ label: 'Purchase Order Accuracy', maxPoints: 15 }, { label: 'Vendor Management Score', maxPoints: 15 }] },
+      { label: 'Administrative Excellence', weightPct: 25, content: [{ label: 'Administrative Task Completion', maxPoints: 15 }, { label: 'Documentation Quality', maxPoints: 10 }] },
+      { label: 'Additional Responsibility', weightPct: 3, content: [{ label: 'Additional Tasks Completed', maxPoints: 3 }] },
+      { label: 'Attendance', weightPct: 2, content: [{ label: 'Attendance Rate', maxPoints: 2 }] },
     ],
   };
+  /** Merge stored weights with defaults, ensuring every dept/category has content */
+  const initDepartmentWeights = (): DepartmentWeights => {
+    const stored = loadDepartmentWeightsFromStorage();
+    if (!stored) return DEFAULT_DEPARTMENT_WEIGHTS;
+    // Ensure every department and category has content; fill from defaults if missing
+    const merged: DepartmentWeights = { ...DEFAULT_DEPARTMENT_WEIGHTS };
+    for (const dept of Object.keys(DEFAULT_DEPARTMENT_WEIGHTS)) {
+      const storedDept = stored[dept];
+      if (!storedDept || storedDept.length === 0) {
+        merged[dept] = DEFAULT_DEPARTMENT_WEIGHTS[dept];
+      } else {
+        const defaultDept = DEFAULT_DEPARTMENT_WEIGHTS[dept] ?? [];
+        merged[dept] = storedDept.map((cat, idx) => {
+          const hasContent = Array.isArray(cat.content) && cat.content.length > 0;
+          if (hasContent) return cat;
+          // Try to find matching category by label first, then by index
+          const defaultCat = defaultDept.find(d => d.label === cat.label) ?? defaultDept[idx];
+          return { ...cat, content: defaultCat?.content ?? cat.content };
+        });
+      }
+    }
+    return merged;
+  };
   /** Single source for employee/supervisor grading UI (weights, criteria content, panel definitions). Mutated only from admin: Edit weighted scores → Commit, Load standard, or per-dept Reset (not from unsaved drafts). */
-  const [departmentWeights, setDepartmentWeights] = useState<DepartmentWeights>(() => loadDepartmentWeightsFromStorage() ?? DEFAULT_DEPARTMENT_WEIGHTS);
+  const [departmentWeights, setDepartmentWeights] = useState<DepartmentWeights>(initDepartmentWeights);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -644,20 +669,7 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Keep seeded pre-installed demo audits in sync with the latest code.
-  // Without this, localStorage can keep an older copy and the UI will still show old (incorrect) category inputs.
-  useEffect(() => {
-    setAuditBuckets((prev) => {
-      const next: AuditBuckets = { ...prev };
-      const b = next.Accounting ?? { pending: [], history: [] };
-      next.Accounting = { pending: [...(b.pending || [])], history: [...(b.history || [])] };
-
-      upsertAudit(next, 'Accounting', 'pending', PREINSTALLED_ACCOUNTING_PENDING_90);
-      upsertAudit(next, 'Accounting', 'history', PREINSTALLED_ACCOUNTING_VALIDATED_90);
-      upsertAudit(next, 'Accounting', 'history', PREINSTALLED_ACCOUNTING_REJECTED_90);
-      return next;
-    });
-  }, []);
+  // Demo audits removed — submission history starts clean for all employees.
 
   // Persist bucketed audit store so other tabs see updates (live sync)
   useEffect(() => {
@@ -875,6 +887,21 @@ const App: React.FC = () => {
     });
   }, [user, registry, adminUsers, addAuditEntry, addNotification]);
 
+  const handleClearMyLogs = useCallback(() => {
+    if (!user) return;
+    const dept = user.department || 'Unknown';
+    setAuditBuckets((prev) => {
+      const next = { ...prev };
+      const b = next[dept] ?? { pending: [], history: [] };
+      next[dept] = {
+        pending: (b.pending || []).filter((t: Transmission) => t.userId !== user.id),
+        history: (b.history || []).filter((t: Transmission) => t.userId !== user.id),
+      };
+      return next;
+    });
+    addAuditEntry('DATA_DELETE', `All submissions cleared by ${user.name}`, 'WARN', user.name);
+  }, [user, addAuditEntry]);
+
   const handleEditSubmission = useCallback((transmission: Transmission) => {
     if (!user) return;
     const dept = transmission.department || user.department || 'Unknown';
@@ -1013,6 +1040,7 @@ const App: React.FC = () => {
             )}
             <div className="relative z-10 flex flex-col flex-1 min-h-0">
               <AuthActionsProvider value={{ logout: handleLogout }}>
+                <RoleSidenavRailProvider>
                 <MobileSidenavProvider>
                   <Navbar
                     user={user}
@@ -1023,8 +1051,8 @@ const App: React.FC = () => {
                     notifications={notifications.filter(n => n.targetUserId === user.id || (user.role === UserRole.ADMIN))}
                     onDeleteNotification={deleteNotification}
                   />
-                  <main className="flex-1 flex flex-col min-h-0 w-full max-w-[1800px] mx-auto overflow-hidden">
-                    <div className="px-4 sm:px-6 md:px-8 lg:px-0 py-4 sm:py-4 md:py-6 flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
+                  <main className="flex-1 flex flex-col min-h-0 w-full max-w-[1800px] mx-auto overflow-hidden lg:pl-[76px]">
+                    <div className="px-4 sm:px-6 md:px-8 lg:px-8 py-4 sm:py-4 md:py-6 flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
                       <Dashboard
                         user={user}
                         pendingTransmissions={pendingTransmissions}
@@ -1040,6 +1068,7 @@ const App: React.FC = () => {
                         onTransmit={handleTransmit}
                         onDeleteSubmission={handleDeleteSubmission}
                         onEditSubmission={handleEditSubmission}
+                        onClearMyLogs={handleClearMyLogs}
                         onValidate={handleValidate}
                         onSupervisorGrade={handleSupervisorGrade}
                         onPostAnnouncement={handlePostAnnouncement}
@@ -1053,6 +1082,7 @@ const App: React.FC = () => {
                     </div>
                   </main>
                 </MobileSidenavProvider>
+                </RoleSidenavRailProvider>
               </AuthActionsProvider>
             </div>
           </div>

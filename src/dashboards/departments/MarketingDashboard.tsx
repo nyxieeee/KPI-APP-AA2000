@@ -23,7 +23,9 @@ import { TechnicalLogDetailAuditReview } from '../../components/TechnicalLogDeta
 import { PerformanceMatrix as PerformanceMatrixCard } from '../../components/PerformanceMatrix';
 import { PdfToast, type PdfToastState } from '../../components/PdfToast';
 import { RoleSidenav } from '../../components/RoleSidenav';
+import { APP_NAV_RAIL_PL_COLLAPSED, APP_NAV_RAIL_PL_EXPANDED } from '../../constants/navbarLayout';
 import { useMobileSidenav } from '../../contexts/MobileSidenavContext';
+import { useRoleSidenavRail } from '../../contexts/RoleSidenavRailContext';
 import { useLockBodyScroll } from '../../hooks/useLockBodyScroll';
 import { 
   Activity, CheckCircle2, Clock, FileCheck, ChevronRight, ChevronLeft, ShieldCheck, Zap,
@@ -41,6 +43,7 @@ interface Props {
   onTransmit: (t: Transmission) => void;
   onDeleteSubmission?: (t: Transmission) => void;
   onEditSubmission?: (t: Transmission) => void;
+  onClearMyLogs?: () => void;
   departmentWeights?: DepartmentWeights;
 }
 
@@ -91,11 +94,11 @@ const MARKETING_LOG_CHECKLIST_CONTENT: Record<string, string[]> = {
   'Attendance & Discipline': [],
 };
 
-const MarketingDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissions, transmissionHistory, announcements, onTransmit, departmentWeights, onDeleteSubmission, onEditSubmission }) => {
+const MarketingDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissions, transmissionHistory, announcements, onTransmit, departmentWeights, onDeleteSubmission, onEditSubmission, onClearMyLogs }) => {
   const { startHoldPanel, stopHold } = useAuditPanelCategoryHold();
   const [isDragging, setIsDragging] = useState(false);
   const [activeStep, setActiveStep] = useState(1);
-  const [navCollapsed, setNavCollapsed] = useState(false);
+  const { railOpen } = useRoleSidenavRail();
   const { setConfig: setMobileNavConfig } = useMobileSidenav();
   const [isTransmitting, setIsTransmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -853,9 +856,7 @@ const MarketingDashboard: React.FC<Props> = ({ user, validatedStats, pendingTran
 
   return (
     <div
-      className={`w-full max-w-full xl:max-w-[1600px] 2xl:max-w-[1800px] mx-auto px-4 sm:px-6 lg:pr-8 space-y-6 sm:space-y-8 pb-6 sm:pb-12 min-h-0 flex flex-col ${
-        navCollapsed ? 'lg:pl-[104px] lg:pr-6' : 'lg:pl-[288px] lg:pr-6'
-      }`}
+      className={`w-full max-w-full xl:max-w-[1600px] 2xl:max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8 pb-6 sm:pb-12 min-h-0 flex flex-col ${railOpen ? APP_NAV_RAIL_PL_EXPANDED : APP_NAV_RAIL_PL_COLLAPSED}`}
     >
       <DirectDirectiveModal
         open={isBroadcastModalOpen}
@@ -877,7 +878,7 @@ const MarketingDashboard: React.FC<Props> = ({ user, validatedStats, pendingTran
 
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-slate-50/90 backdrop-blur-md border-b border-slate-200/60 -mt-4 sm:-mt-6 md:-mt-8 -mx-4 sm:-mx-6 md:-mx-8 px-4 sm:px-6 md:px-8 py-2 sm:py-6 md:py-8">
         <div className="space-y-4">
-          <h1 className="text-[44px] font-black text-slate-900 tracking-tight leading-none">Marketing KPI Logs</h1>
+          <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-none">Marketing KPI Logs</h1>
           <p className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-slate-100 to-blue-50 border border-slate-200/80 shadow-sm">
           <span className="text-[10px] font-black text-slate-500 uppercase tracking-wide">Signed in as</span>
           <span className="text-slate-800 font-bold text-sm uppercase tracking-wide">{user.name}</span>
@@ -939,8 +940,6 @@ const MarketingDashboard: React.FC<Props> = ({ user, validatedStats, pendingTran
                 }
                 scrollEmployeeWorkspaceIntoView();
               }}
-              collapsed={navCollapsed}
-              onToggleCollapsed={() => setNavCollapsed((v) => !v)}
             />
           </div>
 
@@ -1176,6 +1175,7 @@ const MarketingDashboard: React.FC<Props> = ({ user, validatedStats, pendingTran
                   isGradingExpired={(t) => isPendingGradingConfigExpired(t, 'Marketing', departmentWeights)}
                   onDelete={onDeleteSubmission}
                   onEdit={onEditSubmission}
+                  onClearLogs={onClearMyLogs}
                 />
               ) : (
                 <>

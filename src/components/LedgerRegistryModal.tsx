@@ -21,6 +21,8 @@ export type LedgerRegistrySharedProps = {
   onDelete?: (t: Transmission) => void;
   /** Called when employee edits a pending submission (opens re-submission flow) */
   onEdit?: (t: Transmission) => void;
+  /** Called when employee clears all their submission logs */
+  onClearLogs?: () => void;
 };
 
 type ModalProps = LedgerRegistrySharedProps & {
@@ -265,7 +267,10 @@ export const LedgerRegistryPanel: React.FC<LedgerRegistrySharedProps & { classNa
   isGradingExpired,
   onDelete,
   onEdit,
+  onClearLogs,
 }) => {
+  const [confirmClear, setConfirmClear] = useState(false);
+
   return (
     <section
       className={`flex flex-col min-h-0 animate-in fade-in slide-in-from-bottom-2 duration-500 ${className}`}
@@ -275,10 +280,40 @@ export const LedgerRegistryPanel: React.FC<LedgerRegistrySharedProps & { classNa
         <div className="w-12 h-12 bg-blue-600/10 rounded-2xl flex items-center justify-center border border-blue-600/15">
           <Clock className="w-6 h-6 text-blue-600" aria-hidden />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight truncate">{title}</h3>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">{subtitle}</p>
         </div>
+        {onClearLogs && (
+          <div className="shrink-0">
+            {confirmClear ? (
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-wide">Clear all?</span>
+                <button
+                  onClick={() => { onClearLogs(); setConfirmClear(false); }}
+                  className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-[10px] font-black uppercase tracking-wide hover:bg-red-700 transition-colors"
+                >
+                  Yes, Clear
+                </button>
+                <button
+                  onClick={() => setConfirmClear(false)}
+                  className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-wide hover:bg-slate-200 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmClear(true)}
+                disabled={records.length === 0}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-black uppercase tracking-wide hover:bg-red-50 hover:text-red-600 transition-colors border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-slate-100 disabled:hover:text-slate-500"
+              >
+                <Trash2 className="w-3 h-3" />
+                Clear Logs
+              </button>
+            )}
+          </div>
+        )}
       </div>
       <RegistryRecordList
         emptyText={emptyText}

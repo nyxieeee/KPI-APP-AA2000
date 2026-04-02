@@ -25,7 +25,12 @@ import {
 import { saveDepartmentWeightsToStorage } from '../utils/departmentWeightsStorage';
 import { clearGradingEditSession } from '../utils/gradingEditSession';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
-import { APP_NAV_SIDENAV_HEIGHT, APP_NAV_SIDENAV_TOP } from '../constants/navbarLayout';
+import {
+  APP_NAV_RAIL_PL_COLLAPSED,
+  APP_NAV_RAIL_PL_EXPANDED,
+  APP_NAV_SIDENAV_HEIGHT,
+  APP_NAV_SIDENAV_TOP,
+} from '../constants/navbarLayout';
 import {
   type BasicGradingSystemElement,
   type CheckboxGradingSystemElement,
@@ -88,12 +93,14 @@ import {
   Plus,
   Trash2,
   Database,
-  ChevronLeft,
+  Menu,
   ChevronRight,
+  ChevronLeft,
   LogOut
 } from 'lucide-react';
 import { useAuthActions } from '../contexts/AuthActionsContext';
 import { useMobileSidenav } from '../contexts/MobileSidenavContext';
+import { useRoleSidenavRail } from '../contexts/RoleSidenavRailContext';
 import { ValidationTabs } from '../components/ValidationTabs';
 import { GradingWeightControl } from '../components/GradingWeightControl';
 import { AnnualSummaryPanel } from '../components/AnnualSummaryPanel';
@@ -274,15 +281,15 @@ const AdminDashboard: React.FC<Props> = ({
   // Navigation State
   const [activeTab, setActiveTab] = useState<AdminTab>('registry');
   const [activeDept, setActiveDept] = useState<string>('Technical');
-  const [adminNavCollapsed, setAdminNavCollapsed] = useState(false);
+  const { railOpen, toggleRail } = useRoleSidenavRail();
 
   useEffect(() => {
     setMobileNavConfig({
       ariaLabel: 'Admin navigation',
       items: [
-        { id: 'registry', label: 'Users', icon: Users },
+        { id: 'registry', label: 'Users & Departments', icon: Users },
         { id: 'validation', label: 'Approve Grades', icon: ShieldCheck },
-        { id: 'grading', label: 'Scoring Rules', icon: Scale },
+        { id: 'grading', label: 'Grading System Configuration', icon: Scale },
         { id: 'performance', label: 'Performance', icon: Trophy },
         { id: 'data', label: 'Data & Backup', icon: Database },
         { id: 'summary', label: 'Year-End Summary', icon: CalendarCheck },
@@ -920,24 +927,35 @@ const AdminDashboard: React.FC<Props> = ({
       ],
     },
     Marketing: {
-      'Campaign Execution & Quality': [
-        { label: 'Marketing campaigns launched on time and on budget', maxPoints: 35 },
-        { label: 'Content quality and brand consistency', maxPoints: 30 },
-        { label: 'Campaign performance vs. target metrics', maxPoints: 20 },
-        { label: 'Accuracy of marketing materials', maxPoints: 15 },
+      'Brand & Content Development': [
+        { label: 'Content creation quality and consistency', maxPoints: 30 },
+        { label: 'Brand messaging alignment', maxPoints: 25 },
+        { label: 'Creative campaigns execution', maxPoints: 25 },
+        { label: 'Design and visual standards adherence', maxPoints: 20 },
       ],
-      'Lead Generation & Sales Support': [
+      'Lead Generation & Customer Acquisition': [
         { label: 'Qualified leads generated vs. target', maxPoints: 40 },
-        { label: 'Sales enablement materials delivered', maxPoints: 35 },
-        { label: 'Marketing-to-sales handoff effectiveness', maxPoints: 25 },
+        { label: 'Cost per lead optimization', maxPoints: 35 },
+        { label: 'Lead nurturing effectiveness', maxPoints: 25 },
       ],
-      'Digital & Social Media Performance': [
-        { label: 'Social media engagement and growth', maxPoints: 35 },
-        { label: 'Digital ad performance and ROI', maxPoints: 35 },
-        { label: 'Website traffic and conversion contribution', maxPoints: 30 },
+      'Digital Marketing Performance': [
+        { label: 'Social media engagement and growth metrics', maxPoints: 35 },
+        { label: 'Email marketing campaign performance', maxPoints: 30 },
+        { label: 'Website traffic and SEO improvement', maxPoints: 25 },
+        { label: 'Paid advertising ROI', maxPoints: 10 },
       ],
-      'Additional Responsibilities': [{ label: 'Special projects and flexibility', maxPoints: 100 }],
-      'Attendance & Discipline': [{ label: 'Reliability and compliance', maxPoints: 100 }],
+      'Market Analysis & Strategy': [
+        { label: 'Market research and competitive analysis', maxPoints: 40 },
+        { label: 'Campaign strategy alignment with business goals', maxPoints: 35 },
+        { label: 'Sales support and collaboration', maxPoints: 25 },
+      ],
+      'Administrative Excellence': [
+        { label: 'Campaign reports submitted on time', maxPoints: 50 },
+        { label: 'Marketing assets organized and archived', maxPoints: 50 },
+      ],
+      'Attendance & Discipline': [
+        { label: 'Reliability and punctuality', maxPoints: 100 },
+      ],
     },
   };
 
@@ -998,7 +1016,7 @@ const AdminDashboard: React.FC<Props> = ({
   const DEFAULT_CATEGORY_ICONS: Record<string, string[]> = {
     Technical: ['Wrench', 'Handshake', 'Users2', 'TrendingUp', 'FileStack', 'ShieldCheck'],
     Sales: ['DollarSign', 'Target', 'Activity', 'FileText', 'CalendarCheck', 'Handshake'],
-    Marketing: ['TrendingUp', 'Handshake', 'Activity', 'FileStack', 'CalendarCheck'],
+    Marketing: ['FileText', 'TrendingUp', 'Activity', 'Target', 'FileStack', 'CalendarCheck'],
     Accounting: ['Calculator', 'FileText', 'FileStack', 'Handshake', 'CalendarCheck'],
     IT: ['Cpu', 'ShieldCheck', 'ShieldCheck', 'FileStack', 'FileText', 'CalendarCheck'],
   };
@@ -1027,41 +1045,41 @@ const AdminDashboard: React.FC<Props> = ({
 
   const DEFAULT_DEPARTMENT_WEIGHTS: DepartmentWeights = {
     Technical: [
-      { label: 'Project Execution Quality', weightPct: 40 },
-      { label: 'Client Satisfaction & Turnover', weightPct: 25 },
-      { label: 'Team Leadership & Accountability', weightPct: 15 },
-      { label: 'Sales Support & Lead Development', weightPct: 10 },
-      { label: 'Administrative Excellence', weightPct: 5 },
-      { label: 'Attendance & Discipline', weightPct: 5 },
+      { label: 'Project Execution Quality', weightPct: 40, content: [{ label: 'Back-job Rate', maxPoints: 20 }, { label: 'First-time Fix Rate', maxPoints: 20 }, { label: 'Compliance to Standards', maxPoints: 10 }, { label: 'Schedule Adherence', maxPoints: 10 }] },
+      { label: 'Client Satisfaction & Turnover', weightPct: 25, content: [{ label: 'Client Satisfaction Score', maxPoints: 15 }, { label: 'Client Retention Rate', maxPoints: 10 }] },
+      { label: 'Team Leadership & Accountability', weightPct: 15, content: [{ label: 'Team Coordination', maxPoints: 8 }, { label: 'Accountability & Ownership', maxPoints: 7 }] },
+      { label: 'Sales Support & Lead Development', weightPct: 10, content: [{ label: 'Sales Lead Contributions', maxPoints: 5 }, { label: 'Client Referrals', maxPoints: 5 }] },
+      { label: 'Administrative Excellence', weightPct: 5, content: [{ label: 'Report Accuracy & Timeliness', maxPoints: 5 }] },
+      { label: 'Attendance & Discipline', weightPct: 5, content: [{ label: 'Attendance Rate', maxPoints: 3 }, { label: 'Discipline & Conduct', maxPoints: 2 }] },
     ],
     IT: [
-      { label: 'System Uptime & Reliability', weightPct: 35 },
-      { label: 'Incident Response & Resolution', weightPct: 25 },
-      { label: 'Security & Compliance', weightPct: 20 },
-      { label: 'Infrastructure & Project Delivery', weightPct: 15 },
-      { label: 'Attendance & Discipline', weightPct: 5 },
+      { label: 'System Uptime & Reliability', weightPct: 35, content: [{ label: 'Uptime Percentage', maxPoints: 20 }, { label: 'Incident Prevention', maxPoints: 15 }] },
+      { label: 'Incident Response & Resolution', weightPct: 25, content: [{ label: 'Ticket Resolution Rate', maxPoints: 15 }, { label: 'Mean Time to Resolve', maxPoints: 10 }] },
+      { label: 'Security & Compliance', weightPct: 20, content: [{ label: 'Security Audit Score', maxPoints: 12 }, { label: 'Policy Compliance', maxPoints: 8 }] },
+      { label: 'Infrastructure & Project Delivery', weightPct: 15, content: [{ label: 'On-time Delivery Rate', maxPoints: 10 }, { label: 'Project Quality Score', maxPoints: 5 }] },
+      { label: 'Attendance & Discipline', weightPct: 5, content: [{ label: 'Attendance Rate', maxPoints: 3 }, { label: 'Discipline & Conduct', maxPoints: 2 }] },
     ],
     Sales: [
-      { label: 'Revenue Score', weightPct: 40 },
-      { label: 'Accounts Score', weightPct: 20 },
-      { label: 'Activities Score', weightPct: 20 },
-      { label: 'Quotation Mgmt', weightPct: 10 },
-      { label: 'Attendance', weightPct: 5 },
-      { label: 'Additional Responsibility', weightPct: 5 },
+      { label: 'Revenue Score', weightPct: 40, content: [{ label: 'Revenue vs Target', maxPoints: 40 }] },
+      { label: 'Accounts Score', weightPct: 20, content: [{ label: 'Accounts Closed', maxPoints: 20 }] },
+      { label: 'Activities Score', weightPct: 20, content: [{ label: 'Meetings Conducted', maxPoints: 10 }, { label: 'Calls Made', maxPoints: 10 }] },
+      { label: 'Quotation Mgmt', weightPct: 10, content: [{ label: 'On-time Quotations', maxPoints: 5 }, { label: 'Error-free Quotations', maxPoints: 5 }] },
+      { label: 'Attendance', weightPct: 5, content: [{ label: 'Attendance Rate', maxPoints: 5 }] },
+      { label: 'Additional Responsibility', weightPct: 5, content: [{ label: 'Additional Tasks Completed', maxPoints: 5 }] },
     ],
     Marketing: [
-      { label: 'Accounting Excellence', weightPct: 40 },
-      { label: 'Purchasing Excellence', weightPct: 30 },
-      { label: 'Administrative Excellence', weightPct: 25 },
-      { label: 'Additional Responsibilities', weightPct: 3 },
-      { label: 'Attendance & Discipline', weightPct: 2 },
+      { label: 'Campaign Execution & Quality', weightPct: 40, content: [{ label: 'Campaign Completion Rate', maxPoints: 22 }, { label: 'Creative Quality Score', maxPoints: 18 }] },
+      { label: 'Lead Generation & Sales Support', weightPct: 30, content: [{ label: 'Leads Generated', maxPoints: 20 }, { label: 'Sales Enablement Score', maxPoints: 10 }] },
+      { label: 'Digital & Social Media Performance', weightPct: 25, content: [{ label: 'Engagement Rate', maxPoints: 15 }, { label: 'Follower Growth', maxPoints: 10 }] },
+      { label: 'Additional Responsibilities', weightPct: 3, content: [{ label: 'Additional Tasks Completed', maxPoints: 3 }] },
+      { label: 'Attendance & Discipline', weightPct: 2, content: [{ label: 'Attendance Rate', maxPoints: 2 }] },
     ],
     Accounting: [
-      { label: 'Accounting Excellence', weightPct: 40 },
-      { label: 'Purchasing Excellence', weightPct: 30 },
-      { label: 'Administrative Excellence', weightPct: 25 },
-      { label: 'Additional Responsibility', weightPct: 3 },
-      { label: 'Attendance', weightPct: 2 },
+      { label: 'Accounting Excellence', weightPct: 40, content: [{ label: 'Financial Report Accuracy', maxPoints: 25 }, { label: 'Audit Compliance Score', maxPoints: 15 }] },
+      { label: 'Purchasing Excellence', weightPct: 30, content: [{ label: 'Purchase Order Accuracy', maxPoints: 15 }, { label: 'Vendor Management Score', maxPoints: 15 }] },
+      { label: 'Administrative Excellence', weightPct: 25, content: [{ label: 'Administrative Task Completion', maxPoints: 15 }, { label: 'Documentation Quality', maxPoints: 10 }] },
+      { label: 'Additional Responsibility', weightPct: 3, content: [{ label: 'Additional Tasks Completed', maxPoints: 3 }] },
+      { label: 'Attendance', weightPct: 2, content: [{ label: 'Attendance Rate', maxPoints: 2 }] },
     ],
   };
 
@@ -2638,170 +2656,139 @@ const AdminDashboard: React.FC<Props> = ({
         </div>
 
         {/* Department status overview */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_2.6fr] gap-6 items-stretch bg-slate-50 rounded-lg pt-7 pb-3 px-6 lg:pt-9 lg:pb-4 lg:px-10 shadow-lg border border-slate-200/70 text-slate-900 relative overflow-hidden min-h-[176px] mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(180px,1fr)_minmax(0,2.8fr)] gap-6 items-stretch bg-slate-50 rounded-lg pt-7 pb-3 px-6 lg:pt-9 lg:pb-4 lg:px-10 shadow-lg border border-slate-200/70 text-slate-900 relative overflow-hidden mb-6">
           {/* Decorative background blobs removed for pure light background */}
-          {/* Invisible panel 1/3: Team status */}
-          <div className="flex flex-col gap-1.5 min-w-0 justify-start pb-2 border-b border-slate-200/70 lg:pb-0 lg:border-b-0">
+          {/* Panel 1/3: Team status */}
+          <div className="flex flex-col gap-3 min-w-0 justify-start pb-4 border-b border-slate-200/70 lg:pb-0 lg:border-b-0">
             <div className="flex items-center gap-4 w-full min-h-[40px]">
               <div className="w-10 h-10 bg-white/70 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/10 border border-slate-200">
                 <Users className="w-5 h-5 text-emerald-500" />
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-wide">
-                Team status
-              </p>
+                  Team status
+                </p>
                 <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight leading-none whitespace-nowrap overflow-hidden text-ellipsis max-w-[240px] lg:max-w-[280px]">
-                {activeDept} department
-              </h3>
+                  {activeDept} department
+                </h3>
                 <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wide mt-1">
-                {activeNodes} active · {inactiveNodes} inactive
-              </p>
+                  {activeNodes} active · {inactiveNodes} inactive
+                </p>
+              </div>
             </div>
-          </div>
-            <div className="relative w-44 h-44 -mt-1 mb-0 self-center">
+            <div className="relative w-40 h-40 mt-1 self-center">
               <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                {/* Background track */}
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  fill="none"
-                  stroke="rgb(30 64 175 / 0.25)"
-                  strokeWidth="10"
-                  strokeLinecap="round"
-                />
-                {/* Animated progress arc */}
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  fill="none"
-                  stroke="rgb(16 185 129)"
-                  strokeWidth="10"
-                  strokeLinecap="round"
+                <circle cx="50" cy="50" r="40" fill="none" stroke="rgb(30 64 175 / 0.25)" strokeWidth="10" strokeLinecap="round" />
+                <circle cx="50" cy="50" r="40" fill="none" stroke="rgb(16 185 129)" strokeWidth="10" strokeLinecap="round"
                   strokeDasharray={circumference}
                   strokeDashoffset={circumference * (1 - Math.max(0, Math.min(1, animatedActiveRatio)))}
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-[9px] font-black uppercase tracking-wide text-slate-500">
-                  Active nodes
-                </span>
+                <span className="text-[9px] font-black uppercase tracking-wide text-slate-500">Active users</span>
                 <span className="text-2xl font-black text-emerald-600">
                   {totalNodes ? Math.round(activeRatio * 100) : 0}%
                 </span>
               </div>
             </div>
           </div>
-          <div className="rounded-[1.75rem] bg-white/40 border border-slate-200/70 p-5 lg:p-6 w-full">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-              {/* Invisible panel 2/3: Department average */}
-              <div className="flex flex-col justify-start min-w-0 pt-2 lg:pt-0">
-                <div className="flex items-center gap-4 mb-1 min-h-[40px]">
-                  <div className="w-10 h-10 bg-white/70 rounded-xl flex items-center justify-center shadow-lg shadow-sky-500/10 border border-slate-200">
-                    <Scale className="w-5 h-5 text-sky-500" />
+
+          <div className="rounded-[1.75rem] bg-white/40 border border-slate-200/70 p-5 lg:p-6 w-full min-w-0 overflow-x-auto">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start" style={{ minWidth: '360px' }}>
+              {/* Panel 2/3: Department average — donut LEFT, Q1-Q4 bars RIGHT */}
+              <div className="flex flex-col justify-start pb-4 xl:pb-0 border-b xl:border-b-0 border-slate-200/60 min-w-0">
+                <div className="flex items-center gap-3 mb-3 min-h-[36px]">
+                  <div className="w-8 h-8 bg-white/70 rounded-lg flex items-center justify-center shadow shadow-sky-500/10 border border-slate-200 flex-shrink-0">
+                    <Scale className="w-4 h-4 text-sky-500" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-black text-slate-900 uppercase tracking-tight leading-none">
+                    <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight leading-none">
                       Department average
                     </p>
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-wide mt-1.5">
+                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-wide mt-0.5">
                       Full-year overview
-                    </h3>
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-center justify-center gap-6 -mt-1.5">
-                  <div className="relative w-44 h-44 flex-shrink-0">
-                    <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90 mx-auto">
-                      {/* Background track */}
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="40"
-                  fill="none"
-                        stroke="rgb(30 64 175 / 0.25)"
-                  strokeWidth="10"
-                  strokeLinecap="round"
-                      />
-                      {/* Performance arc */}
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="40"
-                        fill="none"
-                        stroke="rgb(59 130 246)"
-                        strokeWidth="10"
-                        strokeLinecap="round"
+                {/* Donut + Q1-Q4: flex-shrink-0 wrapper so the whole unit never compresses */}
+                <div className={`flex items-center flex-shrink-0 w-max ${railOpen ? 'gap-6' : 'gap-10'}`}>
+                  <div className="relative w-36 h-36 flex-shrink-0">
+                    <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                      <circle cx="50" cy="50" r="40" fill="none" stroke="rgb(30 64 175 / 0.25)" strokeWidth="10" strokeLinecap="round" />
+                      <circle cx="50" cy="50" r="40" fill="none" stroke="rgb(59 130 246)" strokeWidth="10" strokeLinecap="round"
                         strokeDasharray={2 * Math.PI * 40}
                         strokeDashoffset={(2 * Math.PI * 40) * (1 - Math.max(0, Math.min(1, animatedDeptPerfRatio)))}
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-[8px] font-black uppercase tracking-wide text-slate-400">
-                        Dept avg
-                </span>
-                      <span className="text-xl font-black text-blue-400">
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-[9px] font-black uppercase tracking-wide text-slate-400">Dept avg</span>
+                      <span className="text-2xl font-black text-blue-500">
                         {Math.round(animatedDeptPerfRatio * 100)}%
-                </span>
-              </div>
-            </div>
-              <div className="flex h-32 items-end gap-1 mt-4 lg:mt-5">
+                      </span>
+                    </div>
+                  </div>
+                  {/* Q1–Q4 bars — thicker/taller when sidebar closed, slim when open */}
+                  <div
+                    className="flex items-end flex-shrink-0"
+                    style={{ height: railOpen ? '120px' : '144px', gap: railOpen ? '6px' : '10px' }}
+                  >
                     {['Q1', 'Q2', 'Q3', 'Q4'].map((label, idx) => {
                       const value = deptQuarterScores[idx] || 0;
                       const animatedVal = animatedDeptQuarterScores[idx] ?? 0;
                       const heightPct = Math.min(100, Math.max(0, animatedVal));
+                      const barWidth = railOpen ? '14px' : '22px';
                       return (
-                        <div key={label} className="flex flex-col items-center gap-1">
-                      <span className="w-10 text-center text-[9px] font-black text-slate-600 tabular-nums whitespace-nowrap overflow-hidden">
+                        <div key={label} className="flex flex-col items-center justify-end gap-0.5 flex-shrink-0 h-full" style={{ width: barWidth }}>
+                          <span className={`font-black text-slate-600 tabular-nums text-center leading-none ${railOpen ? 'text-[7px]' : 'text-[8px]'}`}>
                             {Math.round(value)}%
-                    </span>
-                          <div className="relative w-4 h-24 rounded-full bg-slate-200 overflow-hidden flex items-end">
-                      <div
-                          className="w-full rounded-full bg-[#3880F0] transition-none"
+                          </span>
+                          <div className="relative flex-1 w-full rounded-sm bg-slate-200 overflow-hidden flex items-end">
+                            <div
+                              className="w-full bg-[#3880F0] transition-none"
                               style={{ height: `${heightPct}%` }}
-                      />
-                    </div>
-                          <span className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-500">
+                            />
+                          </div>
+                          <span className={`font-black uppercase tracking-wide text-slate-500 leading-none ${railOpen ? 'text-[7px]' : 'text-[8px]'}`}>
                             {label}
-                    </span>
-                  </div>
+                          </span>
+                        </div>
                       );
                     })}
-            </div>
-          </div>
-        </div>
+                  </div>
+                </div>
+              </div>
 
-              {/* Invisible panel 3/3: Department performance */}
-              <div className="flex flex-col justify-start min-w-0 py-2 lg:py-0">
-                <div className="flex items-center gap-4 mb-1 min-h-[40px]">
-                  <div className="w-10 h-10 bg-white/70 rounded-xl flex items-center justify-center shadow-lg shadow-sky-500/10 border border-slate-200">
-                    <Cpu className="w-5 h-5 text-sky-500" />
-            </div>
+              {/* Panel 3/3: Department performance — compact */}
+              <div className="flex flex-col justify-start overflow-hidden py-2 lg:py-0">
+                <div className="flex items-center gap-3 mb-2 min-h-[36px]">
+                  <div className="w-8 h-8 bg-white/70 rounded-lg flex items-center justify-center shadow shadow-sky-500/10 border border-slate-200 flex-shrink-0">
+                    <Cpu className="w-4 h-4 text-sky-500" />
+                  </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-black text-slate-900 uppercase tracking-tight leading-none">
+                    <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight leading-none">
                       Department performance
                     </p>
-                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-wide mt-1.5">
-                      Current quarter overview
-              </h3>
-            </div>
-          </div>
-                <div className="mt-5 max-h-28 lg:max-h-32 overflow-y-auto pr-1 space-y-1.5 custom-scrollbar-thin">
+                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-wide mt-0.5">
+                      Avg scores overview
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-1 overflow-y-auto pr-1 space-y-1 custom-scrollbar-thin">
                   {departmentSummaries.map(summary => (
                     <div key={summary.dept} className="flex items-center gap-2 py-0.5">
-                      <span className="w-20 text-[9px] font-black uppercase tracking-wide text-slate-500">
+                      <span className="w-[4.5rem] text-[9px] font-black uppercase tracking-wide text-slate-500 truncate flex-shrink-0">
                         {summary.dept}
-            </span>
-                      <div className="flex-1 h-3 rounded-full bg-slate-200 overflow-hidden">
+                      </span>
+                      <div className="flex-1 h-2 rounded-full bg-slate-200 overflow-hidden">
                         <div
                           className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-sky-400 to-blue-500 transition-none"
                           style={{ width: `${Math.max(0, Math.min(100, animatedDeptScores[summary.dept] ?? 0))}%` }}
                         />
                       </div>
-                      <span className="w-10 text-right text-[9px] font-black text-slate-600 tabular-nums ml-1">
+                      <span className="w-9 text-right text-[9px] font-black text-slate-600 tabular-nums flex-shrink-0">
                         {Math.round(Math.max(0, Math.min(100, summary.avgScore || 0)))}%
-            </span>
-          </div>
+                      </span>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -3587,7 +3574,7 @@ const AdminDashboard: React.FC<Props> = ({
   };
 
   return (
-    <div className="w-full max-w-full xl:max-w-[1600px] 2xl:max-w-[1800px] mx-auto px-4 sm:px-6 md:px-8 flex flex-col md:flex-row gap-6 md:gap-8 pb-6 md:pb-12 min-h-0 flex-1 overflow-auto">
+    <div className="w-full max-w-full xl:max-w-[1600px] 2xl:max-w-[1800px] mx-auto px-4 sm:px-6 md:px-8 flex flex-col pb-6 md:pb-12 min-h-0 flex-1 overflow-auto">
       {dataDeleteCountdownOpen && (
         <div className="fixed inset-0 z-[9500] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white w-full max-w-md rounded-lg border border-slate-200 shadow-sm overflow-hidden">
@@ -5578,113 +5565,96 @@ const AdminDashboard: React.FC<Props> = ({
         {/* Desktop layout: fixed sidenav + content (reference-style) */}
         <div className="hidden lg:block">
           <aside
-            className={`fixed left-0 ${APP_NAV_SIDENAV_TOP} z-[60] ${APP_NAV_SIDENAV_HEIGHT} border-r border-slate-200 bg-white text-slate-900 shadow-sm ${
-              adminNavCollapsed ? 'w-[92px]' : 'w-[272px]'
+            className={`fixed left-0 ${APP_NAV_SIDENAV_TOP} z-[60] ${APP_NAV_SIDENAV_HEIGHT} overflow-hidden border-r border-slate-200 bg-white text-slate-900 shadow-sm transition-[width] duration-200 ease-out ${
+              railOpen ? 'w-[272px]' : 'w-[76px]'
             }`}
             aria-label="Admin sidenav"
           >
-            <div className="h-full flex flex-col p-4 min-h-0">
-              {/* Nav */}
-              <nav
-                className={`flex flex-col gap-1 flex-1 min-h-0 overflow-y-auto pr-1 ${adminNavCollapsed ? 'items-center' : ''}`}
-              >
-                {[
-                  { id: 'registry', label: 'Users', icon: Users },
-                  { id: 'validation', label: 'Approve Grades', icon: ShieldCheck },
-                  { id: 'grading', label: 'Scoring Rules', icon: Scale },
-                  { id: 'performance', label: 'Performance', icon: Trophy },
-                  { id: 'data', label: 'Data & Backup', icon: Database },
-                  { id: 'summary', label: 'Year-End Summary', icon: CalendarCheck },
-                ].map((item) => {
-                  const Icon = item.icon;
-                  const active = activeTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setActiveTab(item.id as AdminTab)}
-                      className={`group relative w-full flex items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30 ${
-                        adminNavCollapsed ? 'justify-center' : ''
-                      } ${
-                        active
-                          ? 'bg-blue-900 text-white shadow-lg'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                      }`}
-                      title={adminNavCollapsed ? item.label : undefined}
-                      aria-current={active ? 'page' : undefined}
-                    >
-                      <span
-                        className={`flex h-10 w-10 items-center justify-center rounded-lg border shadow-sm transition-colors ${
-                          active ? 'border-white/15 bg-white/10' : 'border-slate-200 bg-white group-hover:bg-slate-50'
-                        }`}
-                      >
-                        <Icon className={`h-5 w-5 ${active ? 'text-white' : 'text-slate-700'}`} aria-hidden />
-                      </span>
-                      {!adminNavCollapsed && (
-                        <span className="min-w-0">
-                          <span className={`block text-[11px] font-black uppercase tracking-wide truncate ${active ? 'text-white' : 'text-slate-800'}`}>
-                            {item.label}
-                          </span>
-                          <span className={`block text-[9px] font-bold uppercase tracking-wide mt-0.5 ${active ? 'text-white/70' : 'text-slate-400'}`}>
-                            {item.id === 'registry'
-                              ? 'Manage users & departments'
-                              : item.id === 'validation'
-                              ? 'Review & approve submitted grades'
-                                : item.id === 'grading'
-                                  ? 'Set scoring weights & criteria'
-                                  : item.id === 'performance'
-                                    ? 'Employee scores & rankings'
-                                    : item.id === 'summary'
-                                      ? 'Annual scores by quarter'
-                                      : 'Export data & clear records'}
-                          </span>
-                        </span>
-                      )}
-                      {/* active dot removed */}
-                    </button>
-                  );
-                })}
-              </nav>
-
-              {/* Bottom controls — Sign out last (aligned with employee/supervisor RoleSidenav) */}
-              <div className="mt-auto pt-4 border-t border-slate-100 space-y-2 shrink-0">
+            <div className="flex h-full min-h-0 flex-col">
+              <div className={`shrink-0 pt-4 pb-2 ${railOpen ? 'px-4' : 'flex justify-center px-2'}`}>
                 <button
                   type="button"
-                  onClick={() => setAdminNavCollapsed((v) => !v)}
-                  className={`w-full flex items-center gap-3 rounded-lg px-3 py-3 text-left text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors ${
-                    adminNavCollapsed ? 'justify-center' : ''
-                  }`}
-                  aria-label={adminNavCollapsed ? 'Expand sidenav' : 'Collapse sidenav'}
+                  onClick={toggleRail}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400/50"
+                  aria-expanded={railOpen}
+                  aria-label={railOpen ? 'Close admin menu' : 'Open admin menu'}
                 >
-                  <ChevronLeft className={`h-5 w-5 transition-transform ${adminNavCollapsed ? 'rotate-180' : ''}`} aria-hidden />
-                  {!adminNavCollapsed && (
-                    <span className="text-[11px] font-black uppercase tracking-wide">Collapse</span>
-                  )}
-                </button>
-                {!adminNavCollapsed && (
-                  <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400 leading-relaxed">
-                    Supervisors submit recommendations first. Admin validates here.
-                  </p>
-                )}
-                <button
-                  type="button"
-                  onClick={logout}
-                  className={`w-full flex items-center gap-3 rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10 active:scale-95 group ${
-                    adminNavCollapsed ? 'justify-center px-3 py-3' : 'justify-center px-5 py-2.5'
-                  }`}
-                  aria-label="Sign out"
-                  title={adminNavCollapsed ? 'Sign out' : undefined}
-                >
-                  <LogOut className={`h-4 w-4 ${adminNavCollapsed ? '' : 'group-hover:translate-x-0.5 transition-transform'}`} aria-hidden />
-                  {!adminNavCollapsed && (
-                    <span className="text-[10px] font-black uppercase tracking-wide">Sign out</span>
-                  )}
+                  <Menu className="h-5 w-5" strokeWidth={2.5} aria-hidden />
                 </button>
               </div>
+
+              {railOpen && (
+                <>
+                  <nav className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto px-3 pb-2">
+                    {[
+                      { id: 'registry', label: 'Users & Departments', icon: Users },
+                      { id: 'validation', label: 'Approve Grades', icon: ShieldCheck },
+                      { id: 'grading', label: 'Grading System Configuration', icon: Scale },
+                      { id: 'performance', label: 'Performance', icon: Trophy },
+                      { id: 'data', label: 'Data & Backup', icon: Database },
+                      { id: 'summary', label: 'Year-End Summary', icon: CalendarCheck },
+                    ].map((item) => {
+                      const Icon = item.icon;
+                      const active = activeTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setActiveTab(item.id as AdminTab)}
+                          className={`group relative flex w-full min-w-0 items-start gap-3 rounded-lg border px-3 py-2.5 text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-400/40 ${
+                            active
+                              ? 'border-blue-200 bg-blue-50 text-blue-900 shadow-sm'
+                              : 'border-transparent text-slate-600 hover:border-slate-100 hover:bg-slate-50 hover:text-slate-900'
+                          }`}
+                          aria-current={active ? 'page' : undefined}
+                        >
+                          <span
+                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border transition-colors ${
+                              active ? 'border-blue-300 bg-blue-100' : 'border-slate-200 bg-white group-hover:bg-slate-100'
+                            }`}
+                          >
+                            <Icon className={`h-[18px] w-[18px] ${active ? 'text-blue-600' : 'text-slate-700'}`} aria-hidden />
+                          </span>
+                          <span className="min-w-0 flex-1 pt-0.5">
+                            <span className={`block text-xs font-semibold leading-tight ${active ? 'text-blue-900' : 'text-slate-800'}`}>
+                              {item.label}
+                            </span>
+                            <span className={`mt-0.5 block text-[10px] font-normal leading-snug ${active ? 'text-blue-700' : 'text-slate-400'}`}>
+                              {item.id === 'registry'
+                                ? 'Manage users & departments'
+                                : item.id === 'validation'
+                                ? 'Review & approve submitted grades'
+                                  : item.id === 'grading'
+                                    ? 'Set scoring weights & criteria'
+                                    : item.id === 'performance'
+                                      ? 'Employee scores & rankings'
+                                      : item.id === 'summary'
+                                        ? 'Annual scores by quarter'
+                                        : 'Export data only'}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </nav>
+
+                  <div className="shrink-0 border-t border-slate-100 px-3 pb-4 pt-3">
+                    <button
+                      type="button"
+                      onClick={logout}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-[11px] font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400/30"
+                      aria-label="Sign out"
+                    >
+                      <LogOut className="h-4 w-4 shrink-0" aria-hidden />
+                      Sign out
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </aside>
 
-          <div className={`${adminNavCollapsed ? 'pl-[104px] pr-6' : 'pl-[288px] pr-6'} min-h-0`}>
+          <div className={`${railOpen ? APP_NAV_RAIL_PL_EXPANDED : APP_NAV_RAIL_PL_COLLAPSED} pr-4 sm:pr-6 lg:pr-8 min-h-0`}>
             <section className="min-w-0 min-h-0">
               {activeTab === 'registry' && renderRegistry()}
               {activeTab === 'validation' && renderValidation()}

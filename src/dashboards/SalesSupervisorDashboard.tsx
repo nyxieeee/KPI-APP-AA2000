@@ -19,6 +19,8 @@ import {
 import { SupervisorToast } from '../components/SupervisorToast';
 import { SupervisorIncentiveMatrixPanel } from '../components/SupervisorIncentiveMatrixPanel';
 import { RoleSidenav } from '../components/RoleSidenav';
+import { APP_NAV_RAIL_PL_COLLAPSED, APP_NAV_RAIL_PL_EXPANDED } from '../constants/navbarLayout';
+import { useRoleSidenavRail } from '../contexts/RoleSidenavRailContext';
 import { useMobileSidenav } from '../contexts/MobileSidenavContext';
 import {
   type AuditBuckets,
@@ -228,7 +230,7 @@ const SalesSupervisorDashboard: React.FC<Props> = ({
 
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState('');
-  const [navCollapsed, setNavCollapsed] = useState(false);
+  const { railOpen } = useRoleSidenavRail();
   const [justificationPopupMessage, setJustificationPopupMessage] = useState<string | null>(null);
   const [deptMembers, setDeptMembers] = useState<any[]>([]);
   const justificationTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -254,10 +256,10 @@ const SalesSupervisorDashboard: React.FC<Props> = ({
     setMobileNavConfig({
       ariaLabel: 'Supervisor navigation',
       items: [
-        { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
-        { id: 'queue', label: 'Registry', icon: ListTodo, badge: pendingCount },
-        { id: 'team', label: 'Unit', icon: Users },
-        { id: 'incentives', label: 'Yield', icon: PesoCircleIcon },
+        { id: 'dashboard', label: 'Summary', icon: LayoutDashboard },
+        { id: 'queue', label: 'Tasks', icon: ListTodo, badge: pendingCount },
+        { id: 'team', label: 'Team', icon: Users },
+        { id: 'incentives', label: 'Performance', icon: PesoCircleIcon },
       ],
       activeId: currentPage,
       onSelect: (id) => {
@@ -790,14 +792,14 @@ const SalesSupervisorDashboard: React.FC<Props> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
         <div className="lg:col-span-5 flex flex-col">
           <div className="bg-slate-100 rounded-xl p-5 border border-slate-200 shadow-lg overflow-hidden h-[22rem] min-h-[22rem] flex flex-col">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-6 shrink-0">
+            <div className="flex items-center justify-between gap-2 mb-4 shrink-0">
               <div>
                 <p className="text-[10px] font-black tracking-wide text-slate-400 uppercase">Message to your team</p>
-                <h2 className="mt-1 text-xl font-black text-slate-900 tracking-tight">New announcement</h2>
+                <h2 className="mt-0.5 text-base font-black text-slate-900 tracking-tight">New announcement</h2>
               </div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 border border-slate-200 text-[10px] font-black text-slate-500 uppercase tracking-wide shadow-sm">This department only</span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/80 border border-slate-200 text-[9px] font-black text-slate-500 uppercase tracking-wide shadow-sm whitespace-nowrap">Dept only</span>
             </div>
-            <div className="flex-1 min-h-0 flex flex-col gap-4 bg-white rounded-lg p-6 border border-slate-200/80 shadow-sm overflow-hidden">
+            <div className="flex-1 min-h-0 flex flex-col gap-3 bg-white rounded-lg p-4 border border-slate-200/80 shadow-sm overflow-hidden">
               <textarea
                 value={announcementMsg}
                 onChange={(e) => setAnnouncementMsg(e.target.value)}
@@ -807,7 +809,7 @@ const SalesSupervisorDashboard: React.FC<Props> = ({
               <button
                 onClick={handleDispatchAnnouncement}
                 disabled={!announcementMsg.trim()}
-                className="w-full flex items-center justify-center gap-2.5 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-wide bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-blue-200/50 shrink-0"
+                className="w-full flex items-center justify-center gap-2.5 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-wide bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-blue-200/50 shrink-0 mt-auto"
               >
                 <Send className="w-4 h-4 shrink-0" aria-hidden />
                 Post to team
@@ -1235,8 +1237,8 @@ const SalesSupervisorDashboard: React.FC<Props> = ({
         <div className="bg-slate-100 rounded-xl p-5 border border-slate-200 shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div>
-              <p className="text-[10px] font-black tracking-wide text-slate-400 uppercase">Yield</p>
-              <h2 className="mt-1 text-xl font-black text-slate-900 tracking-tight uppercase">Sales Yield</h2>
+              <p className="text-[10px] font-black tracking-wide text-slate-400 uppercase">Performance</p>
+              <h2 className="mt-1 text-xl font-black text-slate-900 tracking-tight uppercase">Sales Performance</h2>
               <p className="mt-2 text-[10px] font-bold text-slate-500 uppercase tracking-wide flex items-center gap-2">
                 <Calendar className="w-3 h-3" />
                 Quarterly cycle: {qInfo.q} ({qInfo.months}) · Payout Est. {qInfo.payout}
@@ -1430,18 +1432,21 @@ const SalesSupervisorDashboard: React.FC<Props> = ({
                            </div>
                            <span className="text-sm font-black text-blue-400">{(grading as any)[cat.key]}</span>
                         </div>
-                        <div className="flex gap-2">
-                          {[1, 2, 3, 4, 5].map(val => {
-                            const scoreVal = val * 20;
-                            return (
-                              <button 
-                                key={val} 
-                                disabled={isReadOnly}
-                                onClick={() => setGrading({...grading, [cat.key]: scoreVal})}
-                                className={`flex-1 h-2 rounded-full transition-all ${scoreVal <= (grading as any)[cat.key] ? 'bg-blue-600' : 'bg-white/10'} ${isReadOnly ? 'cursor-default' : ''}`}
-                              ></button>
-                            );
-                          })}
+                        <div className="pt-1">
+                          <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            step={1}
+                            value={(grading as any)[cat.key]}
+                            disabled={isReadOnly}
+                            onChange={(e) => !isReadOnly && setGrading({...grading, [cat.key]: Number(e.target.value)})}
+                            className="grading-slider"
+                            style={{
+                              background: `linear-gradient(to right, #3b82f6 ${(grading as any)[cat.key]}%, rgba(255,255,255,0.1) ${(grading as any)[cat.key]}%)`
+                            }}
+                            aria-label={`${cat.label} score`}
+                          />
                         </div>
                       </div>
                     );
@@ -1700,7 +1705,7 @@ const SalesSupervisorDashboard: React.FC<Props> = ({
   };
 
   return (
-    <div className="w-full flex flex-col px-4 sm:px-6 md:px-8 lg:px-12 pb-6 md:pb-12">
+    <div className="w-full flex flex-col px-4 sm:px-6 md:px-8 lg:px-8 pb-6 md:pb-12">
       {showFeedback && (
         <SupervisorToast message={feedbackMsg} onDismiss={() => setShowFeedback(false)} autoHideMs={4000} />
       )}
@@ -1714,20 +1719,20 @@ const SalesSupervisorDashboard: React.FC<Props> = ({
       )}
 
       <div
-        className={`mb-6 md:mb-8 flex flex-col gap-6 sticky top-0 z-40 bg-slate-50/90 backdrop-blur-md border-b border-slate-200/60 
+        className={`mb-6 md:mb-8 flex flex-col gap-6 bg-slate-50/90 backdrop-blur-md border-b border-slate-200/60 
         -mt-4 sm:-mt-6 md:-mt-8 -mx-4 sm:-mx-6 md:-mx-8 px-4 sm:px-6 md:px-8
         py-2 sm:py-6 md:py-8
-        lg:mx-0 lg:px-0 lg:mt-0 ${navCollapsed ? 'lg:pl-[92px]' : 'lg:pl-[272px]'}`}
+        lg:mx-0 lg:px-0 lg:mt-0 ${railOpen ? APP_NAV_RAIL_PL_EXPANDED : APP_NAV_RAIL_PL_COLLAPSED}`}
       >
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none">Sales Supervisor</h1>
         </div>
         <div className="hidden lg:hidden flex flex-wrap bg-white p-1.5 rounded-lg border border-slate-100 shadow-sm w-fit ml-auto" role="navigation" aria-label="Supervisor navigation">
           {[
-            { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
-            { id: 'queue', label: 'Registry', icon: ListTodo, badge: countPendingReviewAudits(filteredPending) },
-            { id: 'team', label: 'Unit', icon: Users },
-            { id: 'incentives', label: 'Yield', icon: PesoCircleIcon }
+            { id: 'dashboard', label: 'Summary', icon: LayoutDashboard },
+            { id: 'queue', label: 'Tasks', icon: ListTodo, badge: countPendingReviewAudits(filteredPending) },
+            { id: 'team', label: 'Team', icon: Users },
+            { id: 'incentives', label: 'Performance', icon: PesoCircleIcon }
           ].map(item => {
             const Icon = item.icon;
             return (
@@ -1755,10 +1760,10 @@ const SalesSupervisorDashboard: React.FC<Props> = ({
         <RoleSidenav
           roleLabel="Supervisor"
           items={[
-            { id: 'dashboard', label: 'Overview', description: 'Department overview', icon: LayoutDashboard },
-            { id: 'queue', label: 'Registry', description: countPendingReviewAudits(filteredPending) ? `${countPendingReviewAudits(filteredPending)} pending` : 'Review queue', icon: ListTodo, badge: countPendingReviewAudits(filteredPending) },
-            { id: 'team', label: 'Unit', description: 'Team view', icon: Users },
-            { id: 'incentives', label: 'Yield', description: 'Yield & tiers', icon: PesoCircleIcon },
+            { id: 'dashboard', label: 'Summary', description: 'Quick summary', icon: LayoutDashboard },
+            { id: 'queue', label: 'Tasks', description: countPendingReviewAudits(filteredPending) ? `${countPendingReviewAudits(filteredPending)} pending review` : 'Items to review', icon: ListTodo, badge: countPendingReviewAudits(filteredPending) },
+            { id: 'team', label: 'Team', description: 'People and roles', icon: Users },
+            { id: 'incentives', label: 'Performance', description: 'Scores and rewards', icon: PesoCircleIcon },
           ]}
           activeId={currentPage}
           onSelect={(id) => {
@@ -1768,11 +1773,9 @@ const SalesSupervisorDashboard: React.FC<Props> = ({
               setSearchTerm('');
             }
           }}
-          collapsed={navCollapsed}
-          onToggleCollapsed={() => setNavCollapsed((v) => !v)}
         />
 
-        <div className={`${navCollapsed ? 'pl-[92px]' : 'pl-[272px]'} min-h-0`}>
+        <div className={`${railOpen ? APP_NAV_RAIL_PL_EXPANDED : APP_NAV_RAIL_PL_COLLAPSED} pr-4 sm:pr-6 lg:pr-8 min-h-0`}>
           <section className="min-w-0 min-h-0">{currentView()}</section>
         </div>
       </div>

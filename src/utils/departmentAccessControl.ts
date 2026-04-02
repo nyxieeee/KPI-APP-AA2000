@@ -65,7 +65,7 @@ export const countPendingByDepartment = (
 ): number => {
   return transmissions.filter(transmission => {
     const employee = registry.find(u => u.name === transmission.userName);
-    return employee?.department === department && transmission.status === 'pending';
+    return employee?.department === department && transmission.status !== 'validated' && transmission.status !== 'rejected';
   }).length;
 };
 

@@ -137,6 +137,25 @@ export function computeSalesLegacyCategoryScore(
   }
 }
 
+/** Department slices that use the shared weighted-KPI / checklist pipeline (not Marketing-specific). */
+export type WeightedKpiDepartmentKey = 'Technical' | 'Sales' | 'Accounting' | 'IT';
+
+function deptWeightRows(
+  departmentWeights: DepartmentWeights | undefined,
+  departmentKey: WeightedKpiDepartmentKey
+): CategoryWeightItem[] | undefined {
+  switch (departmentKey) {
+    case 'Sales':
+      return departmentWeights?.Sales;
+    case 'Accounting':
+      return departmentWeights?.Accounting;
+    case 'IT':
+      return departmentWeights?.IT;
+    default:
+      return departmentWeights?.Technical;
+  }
+}
+
 /**
  * Global weighted KPI from `allSalesData` + admin department breakdown (same as Verify / Log Detail / PDF).
  * Admin criteria: Σ weightedImpactPct per category. Legacy Technical: Σ (category raw pts × weight/100).
@@ -145,17 +164,12 @@ export function computeSalesLegacyCategoryScore(
 export function getDepartmentWeightedKpiSum(
   log: Pick<Transmission, 'allSalesData' | 'revenueValue' | 'accountsClosedValue'>,
   departmentWeights: DepartmentWeights | undefined,
-  departmentKey: 'Technical' | 'Sales' | 'Accounting',
+  departmentKey: WeightedKpiDepartmentKey,
   CHECKLIST_CONTENT: Record<string, string[]>,
   CLASSIFICATIONS: ClassificationWeightRow[]
 ): number {
   const allData = (log.allSalesData || {}) as Record<string, { checklist?: Record<string, unknown> }>;
-  const deptConfig =
-    departmentKey === 'Sales'
-      ? departmentWeights?.Sales
-      : departmentKey === 'Accounting'
-        ? departmentWeights?.Accounting
-        : departmentWeights?.Technical;
+  const deptConfig = deptWeightRows(departmentWeights, departmentKey);
   const categoryOrder =
     departmentKey === 'Sales'
       ? getSalesWeightedCategoryOrderDynamic(departmentWeights)
@@ -245,16 +259,11 @@ export function migrateLegacyTechnicalMetrics(tm: Record<string, unknown> | null
 export function getDepartmentCategoryRawScoresForSupervisor(
   log: Pick<Transmission, 'allSalesData' | 'revenueValue' | 'accountsClosedValue'>,
   departmentWeights: DepartmentWeights | undefined,
-  departmentKey: 'Technical' | 'Sales' | 'Accounting',
+  departmentKey: WeightedKpiDepartmentKey,
   CHECKLIST_CONTENT: Record<string, string[]>
 ): Record<string, number> {
   const allData = (log.allSalesData || {}) as Record<string, { checklist?: Record<string, unknown> }>;
-  const deptConfig =
-    departmentKey === 'Sales'
-      ? departmentWeights?.Sales
-      : departmentKey === 'Accounting'
-        ? departmentWeights?.Accounting
-        : departmentWeights?.Technical;
+  const deptConfig = deptWeightRows(departmentWeights, departmentKey);
   const categoryOrder =
     departmentKey === 'Sales'
       ? getSalesWeightedCategoryOrderDynamic(departmentWeights)

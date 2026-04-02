@@ -1,6 +1,6 @@
 import type { CategoryWeightItem, DepartmentWeights, Transmission } from '../types';
 
-export type GradingDepartmentKey = 'Technical' | 'Sales' | 'Accounting' | 'Marketing';
+export type GradingDepartmentKey = 'Technical' | 'Sales' | 'Accounting' | 'Marketing' | 'IT';
 
 function normalizeCriterionContent(items: CategoryWeightItem[] | undefined): unknown[] {
   if (!items?.length) return [];

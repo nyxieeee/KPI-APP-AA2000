@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { User, SystemStats, UserRole, SystemNotification } from '../types';
-import { Menu, Settings, X, KeyRound, Lock, ShieldAlert, Save, Eye, EyeOff, Activity, CheckCircle2, Bell } from 'lucide-react';
+import { Menu, Settings, X, KeyRound, Lock, ShieldAlert, Save, Eye, EyeOff, CheckCircle2, Bell } from 'lucide-react';
 import Logo from './Logo';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import { useMobileSidenav } from '../contexts/MobileSidenavContext';
+import { useRoleSidenavRail } from '../contexts/RoleSidenavRailContext';
 
 interface NavbarProps {
   user: User;
@@ -21,6 +22,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onClearLocalCache, registry, onUp
   const [isBellOpen, setIsBellOpen] = useState(false);
   const bellRef = useRef<HTMLDivElement>(null);
   const mobileNav = useMobileSidenav();
+  const { setRailOpen } = useRoleSidenavRail();
 
   const unreadCount = notifications.length;
 
@@ -41,6 +43,19 @@ const Navbar: React.FC<NavbarProps> = ({ user, onClearLocalCache, registry, onUp
   const [showConfirm, setShowConfirm] = useState(false);
 
   useLockBodyScroll(isSettingsOpen);
+
+  useEffect(() => {
+    if (isSettingsOpen) {
+      mobileNav.close();
+      setRailOpen(false);
+      document.body.classList.add('settings-open');
+    } else {
+      document.body.classList.remove('settings-open');
+    }
+    return () => {
+      document.body.classList.remove('settings-open');
+    };
+  }, [isSettingsOpen, mobileNav, setRailOpen]);
 
   const handlePasswordChange = (e: React.FormEvent) => {
     e.preventDefault();
@@ -173,7 +188,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onClearLocalCache, registry, onUp
                   disabled={isUpdatingPwd}
                   className={`w-full py-2.5 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-3 ${isUpdatingPwd ? 'bg-slate-100 text-slate-400' : 'bg-slate-900 text-white hover:bg-slate-800'}`}
                 >
-                  {isUpdatingPwd ? <Activity className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {isUpdatingPwd ? <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
                   Save password
                 </button>
               </form>
@@ -206,7 +221,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, onClearLocalCache, registry, onUp
         </div>
       )}
 
-      <nav className="bg-white border-b border-slate-100 lg:sticky lg:top-0 z-[1000] h-20 flex items-center shadow-sm">
+      <nav className={`bg-white border-b border-slate-100 lg:sticky lg:top-0 z-[1000] h-20 flex items-center shadow-sm transition-opacity duration-150 ${isSettingsOpen ? 'opacity-0 pointer-events-none select-none' : ''}`}>
         <div className="max-w-[1800px] mx-auto w-full px-4 md:px-12 flex items-center justify-between">
           <div className="flex items-center gap-3 sm:gap-6 md:gap-10">
             <button

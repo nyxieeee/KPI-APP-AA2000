@@ -11,9 +11,9 @@ interface ValidationTabsProps {
   onTabChange: (dept: string) => void;
 }
 
-type Department = 'Technical' | 'Sales' | 'Marketing' | 'IT';
+type Department = 'Technical' | 'Sales' | 'Marketing' | 'IT' | 'Accounting';
 
-const DEPARTMENTS: Department[] = ['Technical', 'Sales', 'Marketing', 'IT'];
+const DEPARTMENTS: Department[] = ['Technical', 'IT', 'Sales', 'Marketing', 'Accounting'];
 
 export const ValidationTabs: React.FC<ValidationTabsProps> = ({
   pendingTransmissions,

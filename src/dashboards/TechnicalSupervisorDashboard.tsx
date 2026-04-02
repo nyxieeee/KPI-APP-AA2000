@@ -32,6 +32,8 @@ import {
 import { GradingExpiredBadge } from '../components/GradingExpiredBadge';
 import { isPendingGradingConfigExpired } from '../utils/gradingConfigSignature';
 import { RoleSidenav } from '../components/RoleSidenav';
+import { APP_NAV_RAIL_PL_COLLAPSED, APP_NAV_RAIL_PL_EXPANDED } from '../constants/navbarLayout';
+import { useRoleSidenavRail } from '../contexts/RoleSidenavRailContext';
 import { useMobileSidenav } from '../contexts/MobileSidenavContext';
 import { 
   BarChart3, 
@@ -269,7 +271,7 @@ const TechnicalSupervisorDashboard: React.FC<Props> = ({
   );
 
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
-  const [navCollapsed, setNavCollapsed] = useState(false);
+  const { railOpen } = useRoleSidenavRail();
   const [selectedItem, setSelectedLog] = useState<Transmission | null>(null);
   const [announcementMsg, setAnnouncementMsg] = useState('');
   const [queueTab, setQueueTab] = useState<'pending' | 'history' | 'rejected'>('pending');
@@ -374,10 +376,10 @@ const TechnicalSupervisorDashboard: React.FC<Props> = ({
     setMobileNavConfig({
       ariaLabel: 'Supervisor navigation',
       items: [
-        { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
-        { id: 'queue', label: 'Registry', icon: ListTodo, badge: pendingBadgeCount },
-        { id: 'team', label: 'Unit', icon: Users },
-        { id: 'incentives', label: 'Yield', icon: PesoCircleIcon },
+        { id: 'dashboard', label: 'Summary', icon: LayoutDashboard },
+        { id: 'queue', label: 'Tasks', icon: ListTodo, badge: pendingBadgeCount },
+        { id: 'team', label: 'Team', icon: Users },
+        { id: 'incentives', label: 'Performance', icon: PesoCircleIcon },
       ],
       activeId: currentPage,
       onSelect: (id) => {
@@ -915,14 +917,14 @@ const TechnicalSupervisorDashboard: React.FC<Props> = ({
         {/* Broadcast — styled to match Department Audit Overview */}
         <div className="lg:col-span-5 flex flex-col">
           <div className="bg-slate-100 rounded-xl p-5 border border-slate-200 shadow-lg overflow-hidden h-[22rem] min-h-[22rem] flex flex-col">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-6 shrink-0">
+            <div className="flex items-center justify-between gap-2 mb-4 shrink-0">
               <div>
                 <p className="text-[10px] font-black tracking-wide text-slate-400 uppercase">Message to your team</p>
-                <h2 className="mt-1 text-xl font-black text-slate-900 tracking-tight">New announcement</h2>
+                <h2 className="mt-0.5 text-base font-black text-slate-900 tracking-tight">New announcement</h2>
               </div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 border border-slate-200 text-[10px] font-black text-slate-500 uppercase tracking-wide shadow-sm">This department only</span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/80 border border-slate-200 text-[9px] font-black text-slate-500 uppercase tracking-wide shadow-sm whitespace-nowrap">Dept only</span>
             </div>
-            <div className="flex-1 min-h-0 flex flex-col gap-4 bg-white rounded-lg p-6 border border-slate-200/80 shadow-sm overflow-hidden">
+            <div className="flex-1 min-h-0 flex flex-col gap-3 bg-white rounded-lg p-4 border border-slate-200/80 shadow-sm overflow-hidden">
               <textarea
                 value={announcementMsg}
                 onChange={(e) => setAnnouncementMsg(e.target.value)}
@@ -932,7 +934,7 @@ const TechnicalSupervisorDashboard: React.FC<Props> = ({
               <button
                 onClick={handleDispatchAnnouncement}
                 disabled={!announcementMsg.trim()}
-                className="w-full flex items-center justify-center gap-2.5 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-wide bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-blue-200/50 shrink-0"
+                className="w-full flex items-center justify-center gap-2.5 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-wide bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-blue-200/50 shrink-0 mt-auto"
               >
                 <Send className="w-4 h-4 shrink-0" aria-hidden />
                 Post to team
@@ -1341,12 +1343,12 @@ const TechnicalSupervisorDashboard: React.FC<Props> = ({
 
     return (
       <div className="space-y-6 animate-in fade-in duration-500">
-        {/* Yield header — matches Department Audit Overview / Registry panel style */}
+        {/* Performance header — matches Department Audit Overview / Registry panel style */}
         <div className="bg-slate-100 rounded-xl p-5 border border-slate-200 shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div>
-              <p className="text-[10px] font-black tracking-wide text-slate-400 uppercase">Yield</p>
-              <h2 className="mt-1 text-xl font-black text-slate-900 tracking-tight uppercase">Technical Yield</h2>
+              <p className="text-[10px] font-black tracking-wide text-slate-400 uppercase">Performance</p>
+              <h2 className="mt-1 text-xl font-black text-slate-900 tracking-tight uppercase">Technical Performance</h2>
               <p className="mt-2 text-[10px] font-bold text-slate-500 uppercase tracking-wide flex items-center gap-2">
                 <Calendar className="w-3 h-3" />
                 Quarterly cycle: {qInfo.q} ({qInfo.months}) · Payout Est. {qInfo.payout}
@@ -1549,19 +1551,21 @@ const TechnicalSupervisorDashboard: React.FC<Props> = ({
                             </div>
                             <span className="text-xs font-black text-white">{scoreVal} PTS</span>
                           </div>
-                          <div className="flex gap-2">
-                            {[1, 2, 3, 4, 5].map(val => {
-                              const step = val * 20;
-                              return (
-                                <button 
-                                  key={val} 
-                                  type="button"
-                                  disabled={isReadOnly}
-                                  onClick={() => setGrading({ ...grading, [category]: step })}
-                                  className={`flex-1 h-2 rounded-full transition-all ${step <= scoreVal ? 'bg-blue-600' : 'bg-white/10'} ${isReadOnly ? 'cursor-default' : ''}`}
-                                />
-                              );
-                            })}
+                          <div className="pt-1">
+                            <input
+                              type="range"
+                              min={0}
+                              max={100}
+                              step={1}
+                              value={scoreVal}
+                              disabled={isReadOnly}
+                              onChange={(e) => !isReadOnly && setGrading({ ...grading, [category]: Number(e.target.value) })}
+                              className="grading-slider"
+                              style={{
+                                background: `linear-gradient(to right, #3b82f6 ${scoreVal}%, rgba(255,255,255,0.1) ${scoreVal}%)`
+                              }}
+                              aria-label={`${category} score`}
+                            />
                           </div>
                         </div>
                       );
@@ -1698,7 +1702,7 @@ const TechnicalSupervisorDashboard: React.FC<Props> = ({
   };
 
   return (
-    <div className="w-full flex flex-col px-4 sm:px-6 md:px-8 lg:px-12 pb-6 md:pb-12">
+    <div className="w-full flex flex-col px-4 sm:px-6 md:px-8 lg:px-8 pb-6 md:pb-12">
       {showFeedback && (
         <SupervisorToast message={feedbackMsg} onDismiss={() => setShowFeedback(false)} autoHideMs={4000} />
       )}
@@ -1711,16 +1715,27 @@ const TechnicalSupervisorDashboard: React.FC<Props> = ({
         </div>
       )}
 
+      <div
+        className={`mb-6 md:mb-8 flex flex-col gap-6 bg-slate-50/90 backdrop-blur-md border-b border-slate-200/60 
+        -mt-4 sm:-mt-6 md:-mt-8 -mx-4 sm:-mx-6 md:-mx-8 px-4 sm:px-6 md:px-8
+        py-2 sm:py-6 md:py-8
+        lg:mx-0 lg:px-0 lg:mt-0 ${railOpen ? APP_NAV_RAIL_PL_EXPANDED : APP_NAV_RAIL_PL_COLLAPSED}`}
+      >
+        <div>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none">Technical Supervisor</h1>
+        </div>
+      </div>
+
       {/* Mobile navigation is now in the burger drawer */}
 
       <div className="hidden lg:block">
         <RoleSidenav
           roleLabel="Supervisor"
           items={[
-            { id: 'dashboard', label: 'Overview', description: 'Department overview', icon: LayoutDashboard },
-            { id: 'queue', label: 'Registry', description: pendingCount ? `${pendingCount} pending` : 'Review queue', icon: ListTodo, badge: pendingCount },
-            { id: 'team', label: 'Unit', description: 'Team view', icon: Users },
-            { id: 'incentives', label: 'Yield', description: 'Yield & tiers', icon: PesoCircleIcon },
+            { id: 'dashboard', label: 'Summary', description: 'Quick summary', icon: LayoutDashboard },
+            { id: 'queue', label: 'Tasks', description: pendingCount ? `${pendingCount} pending review` : 'Items to review', icon: ListTodo, badge: pendingCount },
+            { id: 'team', label: 'Team', description: 'People and roles', icon: Users },
+            { id: 'incentives', label: 'Performance', description: 'Scores and rewards', icon: PesoCircleIcon },
           ]}
           activeId={currentPage}
           onSelect={(id) => {
@@ -1730,11 +1745,9 @@ const TechnicalSupervisorDashboard: React.FC<Props> = ({
               setSearchTerm('');
             }
           }}
-          collapsed={navCollapsed}
-          onToggleCollapsed={() => setNavCollapsed((v) => !v)}
         />
 
-        <div className={`${navCollapsed ? 'pl-[92px]' : 'pl-[272px]'} min-h-0`}>
+        <div className={`${railOpen ? APP_NAV_RAIL_PL_EXPANDED : APP_NAV_RAIL_PL_COLLAPSED} pr-4 sm:pr-6 lg:pr-8 min-h-0`}>
           <section className="min-w-0 min-h-0">{currentView()}</section>
         </div>
       </div>

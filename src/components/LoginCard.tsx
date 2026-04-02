@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User, UserRole } from '../types';
-import { LogIn, User as UserIcon, Lock, Activity, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { LogIn, User as UserIcon, Lock, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import Logo from './Logo';
 
 interface LoginCardProps {
@@ -149,7 +149,7 @@ const LoginCard: React.FC<LoginCardProps> = ({ onLogin, onAddAuditEntry, registr
                 className="w-full mt-6 font-semibold py-2.5 rounded-lg bg-blue-600 text-white flex items-center justify-center gap-2 text-sm hover:bg-blue-700 disabled:bg-slate-400 transition-all active:scale-95"
               >
                 {isLoading ? (
-                  <><Activity className="w-4 h-4 animate-spin shrink-0" aria-hidden />Signing in…</>
+                  <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" aria-hidden />Signing in…</>
                 ) : (
                   <>Sign In <LogIn className="w-4 h-4 shrink-0" /></>
                 )}

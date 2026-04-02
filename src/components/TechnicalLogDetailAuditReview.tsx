@@ -16,7 +16,7 @@ type ClassificationRow = {
   displayLabel?: string;
 };
 
-type DeptKey = 'Technical' | 'Sales' | 'Accounting' | 'Marketing';
+type DeptKey = 'Technical' | 'Sales' | 'Accounting' | 'Marketing' | 'IT';
 
 type Props = {
   selectedLog: Transmission;
