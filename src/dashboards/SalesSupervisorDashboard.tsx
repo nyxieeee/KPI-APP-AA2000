@@ -1532,7 +1532,7 @@ const SalesSupervisorDashboard: React.FC<Props> = ({
               selectedLog={selectedItem}
               departmentKey="Sales"
               departmentWeights={departmentWeights}
-              CLASSIFICATIONS={supervisorSalesClassificationRows}
+              CLASSIFICATIONS={supervisorSalesClassificationRows as any}
               CHECKLIST_CONTENT={SALES_CHECKLIST_CONTENT_EMPTY}
               getReviewTotalScoreLegacy={(category: string) => {
                 const key = SALES_LABEL_TO_KEY[category];

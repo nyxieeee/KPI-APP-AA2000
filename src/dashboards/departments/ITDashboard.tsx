@@ -261,7 +261,7 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
   // Draft audit data is kept in a ref to avoid heavy rerenders/lag while editing.
   // We only "materialize" (read) it for review/broadcast when needed.
   const categoryInputsRef = useRef<Record<string, {
-    checklist: Record<string, boolean>,
+    checklist: Record<string, unknown>,
     status: string,
     additionalRespValue?: number
   }>>({});
@@ -276,7 +276,7 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
     systemStatus: 'Operational',
     projectReport: '',
     attachments: [] as { name: string, type: string, size: string, data?: string }[],
-    pmChecklist: { task1: false, task2: false, task3: false, task4: false, task5: false, task6: false } as Record<string, boolean>,
+    pmChecklist: { task1: false, task2: false, task3: false, task4: false, task5: false, task6: false } as Record<string, unknown>,
     additionalRespValue: 0,
   });
 
@@ -546,7 +546,7 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
       setFormData({
         jobId: '', clientSite: '', jobType: 'Project Execution Quality', startTime: '', endTime: '',
         systemStatus: 'Operational', projectReport: '', attachments: [],
-        pmChecklist: { task1: false, task2: false, task3: false, task4: false, task5: false, task6: false } as Record<string, boolean>,
+        pmChecklist: { task1: false, task2: false, task3: false, task4: false, task5: false, task6: false } as Record<string, unknown>,
         additionalRespValue: 0,
       });
       setTimeout(() => setShowSuccess(false), 4000);

@@ -362,13 +362,13 @@ const SalesDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmis
     const violations = typeof vilsRaw === 'number' ? vilsRaw : 0;
 
     // attendance_score = 50 - (unexcused_absences × 10)
-    const aScore = absRaw === '' ? 0 : Math.max(0, 50 - (absences * 10));
+    const aScore = Math.max(0, 50 - (absences * 10));
 
     // tardiness_score = 30 - (MAX(0, tardiness_count - 2) × 15)
-    const pScore = lateRaw === '' ? 0 : Math.max(0, 30 - (Math.max(0, tardies - 2) * 15));
+    const pScore = Math.max(0, 30 - (Math.max(0, tardies - 2) * 15));
 
     // IF violations == 0 THEN discipline_score = 20 ELSE discipline_score = MAX(0, 20 - (violations × 20))
-    const dScore = vilsRaw === '' ? 0 : (violations === 0 ? 20 : Math.max(0, 20 - (violations * 20)));
+    const dScore = violations === 0 ? 20 : Math.max(0, 20 - (violations * 20));
 
     // AD_score = MIN(100, attendance_score + tardiness_score + discipline_score)
     const adScore = Math.min(100, aScore + pScore + dScore);
@@ -553,7 +553,8 @@ const SalesDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmis
         onTimeQuotes: 0,
         errorFreeQuotes: 0,
         followedUpQuotes: 0,
-        totalQuotes: 0
+        totalQuotes: 0,
+        additionalRespValue: 0,
       });
       setTimeout(() => setShowSuccess(false), 4000);
     }, 2000);

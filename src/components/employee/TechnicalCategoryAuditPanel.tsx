@@ -343,10 +343,10 @@ function YieldBlockAdminStyle({
 
 export interface TechnicalCategoryAuditPanelProps {
   category: CategoryWeightItem;
-  pmChecklist: Record<string, PmTask>;
+  pmChecklist: Record<string, unknown>;
   setFormData: React.Dispatch<
     React.SetStateAction<{
-      pmChecklist: Record<string, PmTask>;
+      pmChecklist: Record<string, unknown>;
       [key: string]: unknown;
     }>
   >;
@@ -365,7 +365,7 @@ const TechnicalCategoryAuditPanel: React.FC<TechnicalCategoryAuditPanelProps> = 
   const PanelIcon = getEmployeeCategoryIcon(category.icon);
 
   const { aggregatePts, weightedImpactPct } = useMemo(
-    () => computeCategoryAggregateMetrics(category, pmChecklist),
+    () => computeCategoryAggregateMetrics(category, pmChecklist as Record<string, PmTask>),
     [category, pmChecklist]
   );
 
@@ -385,7 +385,7 @@ const TechnicalCategoryAuditPanel: React.FC<TechnicalCategoryAuditPanelProps> = 
     const { textboxEntries, checkboxEntries, logo, basic, cbGrading } = parseElements(item);
     const checkboxN = checkboxEntries.length;
     const textboxN = textboxEntries.length;
-    const task = normalizePmTaskForScoring(pmChecklist[taskKey]);
+    const task = normalizePmTaskForScoring(pmChecklist[taskKey] as PmTask | undefined);
 
     const score = computeCriterionScore(cap, task, textboxEntries, checkboxN, basic, cbGrading);
 

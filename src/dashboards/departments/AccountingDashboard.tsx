@@ -251,7 +251,7 @@ const AccountingDashboard: React.FC<Props> = ({ user, validatedStats, announceme
     systemStatus: 'Balanced',
     projectReport: '',
     attachments: [] as { name: string, type: string, size: string, data?: string }[],
-    pmChecklist: { task1: false, task2: false, task3: false, task4: false, task5: false, task6: false } as Record<string, boolean>,
+    pmChecklist: { task1: false, task2: false, task3: false, task4: false, task5: false, task6: false } as Record<string, unknown>,
     attendanceDays: '' as unknown as number,
     lateArrivals: '' as unknown as number,
     violations: '' as unknown as number,
@@ -328,7 +328,7 @@ const AccountingDashboard: React.FC<Props> = ({ user, validatedStats, announceme
     }
     setFormData((prev) => ({
       ...prev,
-      pmChecklist: { task1: false, task2: false, task3: false, task4: false, task5: false, task6: false } as Record<string, boolean>,
+      pmChecklist: { task1: false, task2: false, task3: false, task4: false, task5: false, task6: false } as Record<string, unknown>,
       systemStatus: 'Operational',
     }));
   }, [formData.jobType, departmentWeights]);
@@ -458,7 +458,7 @@ const AccountingDashboard: React.FC<Props> = ({ user, validatedStats, announceme
         clientSite: 'AA2000 Corporate HQ',
         jobType: 'Accounting Excellence',
         systemStatus: 'Balanced', projectReport: '', attachments: [],
-        pmChecklist: { task1: false, task2: false, task3: false, task4: false, task5: false, task6: false } as Record<string, boolean>,
+        pmChecklist: { task1: false, task2: false, task3: false, task4: false, task5: false, task6: false } as Record<string, unknown>,
         attendanceDays: '' as any,
         lateArrivals: '' as any,
         violations: '' as any,

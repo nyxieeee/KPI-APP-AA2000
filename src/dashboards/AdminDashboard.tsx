@@ -3577,7 +3577,7 @@ const AdminDashboard: React.FC<Props> = ({
                       <div className="relative">
                         <input
                           type="number"
-                          value={tier.points}
+                          value={tier.yield}
                           onChange={(e) => handleUpdateMatrix(i, 'yield', e.target.value)}
                           className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl pl-4 pr-10 py-3 text-sm font-black text-slate-900 dark:text-slate-100 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-200 dark:border-blue-700 transition-all"
                         />
@@ -4198,7 +4198,11 @@ const AdminDashboard: React.FC<Props> = ({
 
                           {(() => {
                             const elements = gradingCriterionElementsDraft;
-                            const logoEntry = elements.map((el, idx) => ({ el, idx })).find((x) => x.el?.type === 'logo') || null;
+                            const logoEntry =
+                              (elements
+                                .map((el, idx) => ({ el, idx }))
+                                .find((x) => x.el?.type === 'logo') as { el: { type: 'logo'; iconKey?: string }; idx: number } | undefined) ||
+                              null;
                             const checkboxEntries = elements
                               .map((el, idx) => ({ el, idx }))
                               .filter((x) => x.el?.type === 'checkbox') as Array<{ el: any; idx: number }>;
@@ -5756,19 +5760,26 @@ const AdminDashboard: React.FC<Props> = ({
                 </button>
               </div>
 
-              {railOpen && (
-                <div className="shrink-0 border-t border-slate-100 dark:border-slate-700 px-3 pb-4 pt-3">
-                  <button
-                    type="button"
-                    onClick={logout}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-[11px] font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400/30"
-                    aria-label="Sign out"
-                  >
-                    <LogOut className="h-4 w-4 shrink-0" aria-hidden />
-                    Sign out
-                  </button>
-                </div>
-              )}
+              <div
+                className={`shrink-0 ${
+                  railOpen
+                    ? 'border-t border-slate-100 dark:border-slate-700 px-3 pb-4 pt-3'
+                    : 'px-2 pb-3'
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={logout}
+                  title={!railOpen ? 'Sign out' : undefined}
+                  className={`flex w-full items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400/30 ${
+                    railOpen ? 'gap-2 px-4 py-2.5 text-[11px] font-semibold' : 'p-2'
+                  }`}
+                  aria-label="Sign out"
+                >
+                  <LogOut className="h-4 w-4 shrink-0" aria-hidden />
+                  {railOpen && 'Sign out'}
+                </button>
+              </div>
             </div>
           </aside>
 
