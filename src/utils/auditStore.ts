@@ -33,8 +33,35 @@ export function loadDepartmentBuckets(): AuditBuckets {
   }
 }
 
+export function stripAttachmentPayloadFromTransmission(t: Transmission): Transmission {
+  if (!Array.isArray(t.attachments) || t.attachments.length === 0) return t;
+  return {
+    ...t,
+    attachments: t.attachments.map((a) => ({
+      name: a.name,
+      type: a.type,
+      size: a.size,
+      data: a.data,
+      storageKey: a.storageKey,
+    })),
+  };
+}
+
+function stripBucketsForStorage(buckets: AuditBuckets): AuditBuckets {
+  const sanitized: AuditBuckets = {};
+  for (const dept of Object.keys(buckets)) {
+    const bucket = buckets[dept];
+    if (!bucket) continue;
+    sanitized[dept] = {
+      pending: (bucket.pending || []).map(stripAttachmentPayloadFromTransmission),
+      history: (bucket.history || []).map(stripAttachmentPayloadFromTransmission),
+    };
+  }
+  return sanitized;
+}
+
 export function saveDepartmentBuckets(buckets: AuditBuckets) {
-  localStorage.setItem(AUDIT_BUCKETS_STORAGE_KEY, JSON.stringify(buckets));
+  localStorage.setItem(AUDIT_BUCKETS_STORAGE_KEY, JSON.stringify(stripBucketsForStorage(buckets)));
 }
 
 export function flattenBuckets(buckets: AuditBuckets) {

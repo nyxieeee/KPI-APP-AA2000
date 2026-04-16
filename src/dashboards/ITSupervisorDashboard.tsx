@@ -22,9 +22,11 @@ import {
 } from '../utils/technicalWeightedKpi';
 import { computeCategoryAggregateMetrics } from '../components/employee/TechnicalCategoryAuditPanel';
 import { TechnicalLogDetailAuditReview } from '../components/TechnicalLogDetailAuditReview';
+import AttachmentLivePreviewPanel from '../components/AttachmentLivePreviewPanel';
 import { getEmployeeCategoryIcon } from '../utils/employeeCategoryIcons';
 import { SupervisorToast } from '../components/SupervisorToast';
 import { SupervisorIncentiveMatrixPanel } from '../components/SupervisorIncentiveMatrixPanel';
+import { hydrateAttachmentData, type HydratableAttachment } from '../utils/attachmentStore';
 import {
   type AuditBuckets,
   getDepartmentBucketForSupervisor,
@@ -67,9 +69,6 @@ import {
   UserCheck, 
   ShieldCheck, 
   Paperclip, 
-  FileImage, 
-  File as FileIcon, 
-  Download, 
   Target, 
   Trophy, 
   User as UserIcon, 
@@ -100,6 +99,7 @@ import {
   UserPlus,
   PhoneCall,
   ListChecks,
+  Download,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -265,6 +265,8 @@ const ITSupervisorDashboard: React.FC<Props> = ({
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const { railOpen } = useRoleSidenavRail();
   const [selectedItem, setSelectedLog] = useState<Transmission | null>(null);
+  const [previewFile, setPreviewFile] = useState<{ name: string; type?: string; size?: string; data?: string; storageKey?: string } | null>(null);
+  const [activeAttachmentIndex, setActiveAttachmentIndex] = useState(0);
   const [announcementMsg, setAnnouncementMsg] = useState('');
   const [queueTab, setQueueTab] = useState<'pending' | 'history' | 'rejected'>('pending');
   const [searchTerm, setSearchTerm] = useState('');
@@ -345,18 +347,40 @@ const ITSupervisorDashboard: React.FC<Props> = ({
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [announcements, dept]);
 
-  const handleDownload = (file: { name: string, data?: string }) => {
-    if (!file.data) {
+  const handleDownload = async (file: HydratableAttachment) => {
+    const hydratedFile = await hydrateAttachmentData(file);
+    if (!hydratedFile.data) {
       alert("Could not download this file. Refresh the page or try again.");
       return;
     }
     const link = document.createElement('a');
-    link.href = file.data;
-    link.download = file.name;
+    link.href = hydratedFile.data;
+    link.download = hydratedFile.name;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
+
+  useEffect(() => {
+    setActiveAttachmentIndex(0);
+  }, [selectedItem?.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setPreviewFile(null);
+    const attachments = selectedItem?.attachments ?? [];
+    if (attachments.length === 0) return;
+    const clampedIndex = Math.min(Math.max(activeAttachmentIndex, 0), attachments.length - 1);
+    if (clampedIndex !== activeAttachmentIndex) {
+      setActiveAttachmentIndex(clampedIndex);
+      return;
+    }
+    (async () => {
+      const hydrated = await hydrateAttachmentData(attachments[clampedIndex] as HydratableAttachment);
+      if (!cancelled && hydrated.data) setPreviewFile(hydrated);
+    })();
+    return () => { cancelled = true; };
+  }, [selectedItem?.id, selectedItem?.attachments, activeAttachmentIndex]);
 
   useEffect(() => {
     setMobileNavConfig({
@@ -429,7 +453,20 @@ const ITSupervisorDashboard: React.FC<Props> = ({
   };
 
   const handleOpenValidation = (item: Transmission, readOnly: boolean = false) => {
-    setSelectedLog(item);
+    void (async () => {
+      const files = Array.isArray(item.attachments) ? item.attachments : [];
+      if (files.length === 0) {
+        setSelectedLog(item);
+        return;
+      }
+      const hydratedAttachments = await Promise.all(
+        files.map(async (file) => {
+          const hydrated = await hydrateAttachmentData(file as HydratableAttachment);
+          return hydrated.data ? hydrated : file;
+        })
+      );
+      setSelectedLog({ ...item, attachments: hydratedAttachments });
+    })();
     setIsReadOnly(readOnly);
     setOverrides({
       responseTime: item.responseTime,
@@ -1642,27 +1679,54 @@ const ITSupervisorDashboard: React.FC<Props> = ({
 
             {/* Attachments */}
             <div className="space-y-4">
-              <div className="flex items-center gap-3"><div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center"><Paperclip className="w-4 h-4 text-white" /></div><p className="text-[10px] font-black text-slate-900 dark:text-slate-100 uppercase tracking-wide">Attachments</p></div>
-              {selectedItem.attachments && selectedItem.attachments.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {selectedItem.attachments.map((file, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg group/file overflow-hidden">
-                      <div className="flex items-center gap-3 min-w-0 flex-1 mr-4">
-                        <div className="w-10 h-10 bg-slate-50 dark:bg-slate-900 rounded-xl flex items-center justify-center shrink-0">{file.type.includes('image') ? <FileImage className="w-5 h-5 text-blue-500" /> : <FileIcon className="w-5 h-5 text-slate-400 dark:text-slate-500 dark:text-slate-500" />}</div>
-                        <div className="overflow-hidden min-w-0 flex-1">
-                          <p className="text-[10px] font-black text-slate-900 dark:text-slate-100 truncate uppercase">{file.name}</p>
-                          <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 dark:text-slate-500">{file.size}</p>
-                        </div>
-                      </div>
-                      <button 
-                        onClick={() => handleDownload(file)}
-                        className="p-2 shrink-0 opacity-0 group-hover/file:opacity-100 text-slate-400 dark:text-slate-500 dark:text-slate-500 hover:text-blue-600 transition-all"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center"><Paperclip className="w-4 h-4 text-white" /></div>
+                  <p className="text-[10px] font-black text-slate-900 dark:text-slate-100 uppercase tracking-wide">Attachments</p>
                 </div>
+                {selectedItem.attachments && selectedItem.attachments.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveAttachmentIndex((idx) => Math.max(0, idx - 1))}
+                      disabled={activeAttachmentIndex <= 0}
+                      className="p-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="Previous attachment"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="text-[10px] font-black uppercase tracking-wide text-slate-500 dark:text-slate-400 min-w-[84px] text-center">
+                      {activeAttachmentIndex + 1}/{selectedItem.attachments.length}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setActiveAttachmentIndex((idx) => Math.min(selectedItem.attachments.length - 1, idx + 1))}
+                      disabled={activeAttachmentIndex >= selectedItem.attachments.length - 1}
+                      className="p-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                      title="Next attachment"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const targetFile = selectedItem.attachments[activeAttachmentIndex] ?? previewFile;
+                        if (targetFile) void handleDownload(targetFile as HydratableAttachment);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-black uppercase tracking-wide transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Download File
+                    </button>
+                  </div>
+                )}
+              </div>
+              {selectedItem.attachments && selectedItem.attachments.length > 0 ? (
+                <>
+                  <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                    <AttachmentLivePreviewPanel file={previewFile} />
+                  </div>
+                </>
               ) : (
                 <p className="text-sm font-medium text-slate-400 dark:text-slate-500 dark:text-slate-500 italic py-2">No attached file</p>
               )}

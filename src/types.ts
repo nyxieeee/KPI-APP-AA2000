@@ -56,7 +56,7 @@ export interface Transmission extends SystemStats {
   jobType: string;
   systemStatus: string;
   projectReport?: string;
-  attachments?: { name: string, type: string, size: string, data?: string }[];
+  attachments?: { name: string, type: string, size: string, data?: string, storageKey?: string }[];
   status?: 'validated' | 'rejected';
   /**
    * Set by supervisor when they finish grading but before admin approval.

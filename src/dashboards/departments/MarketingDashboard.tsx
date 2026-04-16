@@ -13,6 +13,7 @@ import { LedgerRegistryPanel } from '../../components/LedgerRegistryModal';
 import { EMPLOYEE_WORKSPACE_ID } from '../../utils/employeeWorkspaceScroll';
 import { computeGradingConfigSignature, isPendingGradingConfigExpired } from '../../utils/gradingConfigSignature';
 import { DirectDirectiveModal } from '../../components/DirectDirectiveModal';
+import AttachmentLivePreviewPanel from '../../components/AttachmentLivePreviewPanel';
 import { downloadLogDetailPdf, getLogDetailPdfFilename, type CategoryScoreForPdf } from '../../utils/logDetailToPdf';
 import { getAppLogoDataUrl } from '../../utils/pdfCommon';
 import { getScoreSuggestion } from '../../utils/scoreSuggestion';
@@ -29,8 +30,14 @@ import { useMobileSidenav } from '../../contexts/MobileSidenavContext';
 import { useRoleSidenavRail } from '../../contexts/RoleSidenavRailContext';
 import { useLockBodyScroll } from '../../hooks/useLockBodyScroll';
 import {
+  createStoredAttachmentFromFile,
+  hydrateAttachmentData,
+  attachmentsMatch,
+  type HydratableAttachment,
+} from '../../utils/attachmentStore';
+import {
   Activity, CheckCircle2, Clock, FileCheck, ChevronRight, ChevronLeft, ShieldCheck, Zap,
-  File as FileIcon, FileImage, Upload, X, Eye, AlertCircle, FileText, Download, Megaphone,
+  File as FileIcon, FileImage, Upload, X, AlertCircle, FileText, Download, Megaphone,
   TrendingUp, ClipboardList, PenTool, CalendarCheck, Landmark, Trophy, Calendar,
   ShoppingCart, FileStack, Info, Medal, AlertTriangle, XCircle, AlertOctagon, Sparkles, History, Loader2
 } from 'lucide-react';
@@ -180,6 +187,13 @@ const MarketingDashboard: React.FC<Props> = ({ user, validatedStats, pendingTran
     return () => setMobileNavConfig(null);
   }, [setMobileNavConfig, activeStep, isRegistryOpen, ledgerEntryCount, selectedLog]);
   const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
+  const [previewFile, setPreviewFile] = useState<{
+    name: string;
+    type?: string;
+    size?: string;
+    data?: string;
+    storageKey?: string;
+  } | null>(null);
   const [completedCategories, setCompletedCategories] = useState<string[]>([]);
   const [pdfToast, setPdfToast] = useState<PdfToastState>(null);
 
@@ -202,7 +216,7 @@ const MarketingDashboard: React.FC<Props> = ({ user, validatedStats, pendingTran
     endTime: '',
     systemStatus: 'Active',
     projectReport: '',
-    attachments: [] as { name: string; type: string; size: string; data?: string }[],
+    attachments: [] as { name: string; type: string; size: string; data?: string; storageKey?: string }[],
     pmChecklist: { task1: false, task2: false, task3: false, task4: false, task5: false, task6: false } as Record<string, unknown>,
   });
 
@@ -884,42 +898,52 @@ const MarketingDashboard: React.FC<Props> = ({ user, validatedStats, pendingTran
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const fileList = Array.from(e.dataTransfer.files);
-      const processedFiles = await Promise.all(fileList.map((f: File) => {
-        return new Promise<{ name: string; type: string; size: string; data?: string }>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            resolve({
-              name: f.name,
-              type: f.type,
-              size: `${(f.size / 1024).toFixed(1)} KB`,
-              data: reader.result as string
-            });
-          };
-          reader.readAsDataURL(f);
-        });
-      }));
+      const processedFiles = await Promise.all(fileList.map((f: File) => createStoredAttachmentFromFile(f)));
       setFormData(prev => ({ ...prev, attachments: [...prev.attachments, ...processedFiles] }));
+      if (processedFiles.length > 0) setPreviewFile(processedFiles[0]);
     }
   };
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files?.length) return;
-    Array.from(files).forEach((file: File) => {
-      const reader = new FileReader();
-      reader.onload = () => setFormData(prev => ({
-        ...prev,
-        attachments: [...prev.attachments, { name: file.name, type: file.type, size: `${(file.size / 1024).toFixed(1)} KB`, data: reader.result as string }]
-      }));
-      reader.readAsDataURL(file as Blob);
-    });
+    const processedFiles = await Promise.all(Array.from(files).map((file: File) => createStoredAttachmentFromFile(file)));
+    setFormData(prev => ({
+      ...prev,
+      attachments: [...prev.attachments, ...processedFiles]
+    }));
+    if (processedFiles.length > 0) setPreviewFile(processedFiles[0]);
     e.target.value = '';
   };
-  const removeFile = (idx: number) => setFormData(prev => ({ ...prev, attachments: prev.attachments.filter((_, i) => i !== idx) }));
-  const handleDownload = (file: { name: string; data?: string }) => {
-    if (!file.data) return;
+  const removeFile = (index: number) => {
+    setFormData((prev) => {
+      const removed = prev.attachments[index];
+      const next = prev.attachments.filter((_, i) => i !== index);
+      queueMicrotask(() => {
+        if (next.length === 0) {
+          setPreviewFile(null);
+        } else {
+          setPreviewFile((cur) => {
+            if (!cur || !removed) return cur;
+            if (attachmentsMatch(cur, removed)) return next[0] ?? null;
+            if (!next.some((a) => attachmentsMatch(cur, a))) return next[0] ?? null;
+            return cur;
+          });
+        }
+      });
+      return { ...prev, attachments: next };
+    });
+  };
+  const handlePreview = async (file: HydratableAttachment) => {
+    const hydratedFile = await hydrateAttachmentData(file);
+    if (!hydratedFile.data) return;
+    setPreviewFile(hydratedFile);
+  };
+  const handleDownload = async (file: HydratableAttachment) => {
+    const hydratedFile = await hydrateAttachmentData(file);
+    if (!hydratedFile.data) return;
     const link = document.createElement('a');
-    link.href = file.data;
-    link.download = file.name;
+    link.href = hydratedFile.data;
+    link.download = hydratedFile.name;
     link.click();
   };
 
@@ -1464,69 +1488,110 @@ const MarketingDashboard: React.FC<Props> = ({ user, validatedStats, pendingTran
                     })()}
 
                     {activeStep === 3 && (
-                      <div className="space-y-8 animate-in slide-in-from-left-4 fade-in duration-500 pt-2">
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <label className="text-xs font-black text-slate-400 dark:text-slate-500 dark:text-slate-500 uppercase tracking-wide ml-1">Project report</label>
-                            <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-400">{formData.projectReport.length} characters</span>
-                          </div>
-                          <textarea
-                            placeholder="Provide a detailed summary of your activities, metrics achieved, and compliance notes for this period..."
-                            className="w-full h-48 p-5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg font-medium text-sm text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500 transition-colors resize-none no-scrollbar"
-                            value={formData.projectReport}
-                            onChange={e => setFormData(prev => ({ ...prev, projectReport: e.target.value }))}
-                          />
-                        </div>
-                        <div className="space-y-4">
-                          <label className="text-xs font-black text-slate-400 dark:text-slate-500 dark:text-slate-500 uppercase tracking-wide ml-1">Global Proof (PDF/PNG/JPG) *</label>
-                          <div className="flex flex-col md:flex-row gap-4 h-auto md:h-56">
-                            <div
-                              onClick={() => fileInputRef.current?.click()}
-                              onDragOver={handleDragOver}
-                              onDragLeave={handleDragLeave}
-                              onDrop={handleDrop}
-                              className={`w-full md:w-1/3 group flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed transition-all cursor-pointer flex-shrink-0 py-6 md:py-0 ${isDragging ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-400 scale-[1.02]' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-600'}`}
-                            >
-                              <div className="w-14 h-14 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-                                <Upload className="w-7 h-7 text-blue-600" />
-                              </div>
-                              <p className="text-xs font-black text-slate-900 dark:text-slate-100 uppercase tracking-wide">Upload Evidence</p>
-                              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 dark:text-slate-500 uppercase tracking-wide">Attach supporting files</p>
-                              <input ref={fileInputRef} type="file" className="hidden" multiple accept=".pdf,.png,.jpg,.jpeg" onChange={handleFileSelect} />
+                      <div className="space-y-3 animate-in slide-in-from-left-4 fade-in duration-500">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 items-stretch">
+                          <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-3 md:p-4 flex flex-col">
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-xs font-black text-slate-400 dark:text-slate-500 dark:text-slate-500 uppercase tracking-wide ml-1">Project report</label>
+                              <span className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-400">{formData.projectReport.length} characters</span>
                             </div>
-                            <div className="w-full md:w-2/3 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-5 flex flex-col min-h-0 overflow-hidden flex-shrink-0">
-                              <div className="flex items-center justify-between mb-3 sticky top-0 bg-white dark:bg-slate-800 z-10 pb-2 border-b border-slate-100 dark:border-slate-700">
-                                <span className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wide">Attached Files ({formData.attachments.length})</span>
-                                {formData.attachments.length > 0 && (
-                                  <button type="button" onClick={() => setFormData(prev => ({ ...prev, attachments: [] }))} className="text-[10px] font-black text-slate-400 dark:text-slate-500 dark:text-slate-500 hover:text-red-500 uppercase tracking-wide">Clear All</button>
-                                )}
-                              </div>
-                              <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
-                                {formData.attachments.length === 0 ? (
-                                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                                    <FileIcon className="w-10 h-10 text-slate-200 mb-2" />
-                                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-wide">No files attached</p>
-                                  </div>
-                                ) : (
-                                  formData.attachments.map((file, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-700 rounded-xl group">
-                                      <div className="flex items-center gap-3 overflow-hidden min-w-0">
-                                        <div className="w-9 h-9 bg-white dark:bg-slate-800 rounded-lg flex items-center justify-center border border-slate-100 dark:border-slate-700 shrink-0">
+                            <textarea
+                              placeholder="Provide a detailed summary of your activities, metrics achieved, and compliance notes for this period..."
+                              className="w-full flex-1 min-h-[26rem] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg p-4 text-sm font-medium text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500 transition-colors resize-none no-scrollbar"
+                              value={formData.projectReport}
+                              onChange={e => setFormData(prev => ({ ...prev, projectReport: e.target.value }))}
+                            />
+                          </div>
+
+                          <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg p-3 md:p-4 flex flex-col min-h-0">
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-xs font-black text-slate-400 dark:text-slate-500 dark:text-slate-500 uppercase tracking-wide ml-1">Global Proof (PDF/PNG/JPG) *</label>
+                              <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                onDragOver={handleDragOver}
+                                onDragLeave={handleDragLeave}
+                                onDrop={handleDrop}
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-[10px] font-black uppercase tracking-wide transition-all ${isDragging ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-400 text-blue-700 dark:text-blue-300' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:border-blue-300 hover:text-blue-600 dark:hover:text-blue-400'}`}
+                              >
+                                <Upload className="w-3.5 h-3.5" />
+                                Upload
+                              </button>
+                            </div>
+                            <input ref={fileInputRef} type="file" className="hidden" multiple accept=".pdf,.png,.jpg,.jpeg" onChange={handleFileSelect} />
+
+                            <div className="shrink-0 flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-slate-700 mb-1.5">
+                              <span className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wide">Attached Files ({formData.attachments.length})</span>
+                              {formData.attachments.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData((prev) => ({ ...prev, attachments: [] }));
+                                    setPreviewFile(null);
+                                  }}
+                                  title="Remove every attached file"
+                                  aria-label="Clear all attachments"
+                                  className="text-[10px] font-black uppercase tracking-wide px-2 py-1 rounded-md border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 hover:text-red-600 dark:hover:text-red-400 dark:hover:border-red-600 transition-colors"
+                                >
+                                  Clear All
+                                </button>
+                              )}
+                            </div>
+                            <div className="min-h-[7rem] max-h-44 overflow-y-auto custom-scrollbar space-y-1.5 pr-1 overscroll-y-contain">
+                              {formData.attachments.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-5 text-center">
+                                  <FileIcon className="w-7 h-7 text-slate-200 mb-1.5" />
+                                  <p className="text-[10px] font-black text-slate-300 uppercase tracking-wide">No files attached</p>
+                                </div>
+                              ) : (
+                                formData.attachments.map((file, idx) => {
+                                  const isActive = attachmentsMatch(previewFile, file);
+                                  return (
+                                    <div
+                                      key={file.storageKey ?? `${file.name}-${idx}`}
+                                      role="button"
+                                      tabIndex={0}
+                                      onClick={() => void handlePreview(file)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                          e.preventDefault();
+                                          void handlePreview(file);
+                                        }
+                                      }}
+                                      className={`flex items-center justify-between p-2 rounded-lg group border transition-colors outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-slate-800 cursor-pointer ${
+                                        isActive
+                                          ? 'bg-blue-50/90 dark:bg-blue-950/40 border-blue-300 dark:border-blue-600 ring-1 ring-blue-400/80'
+                                          : 'bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-2 overflow-hidden min-w-0">
+                                        <div className="w-8 h-8 bg-white dark:bg-slate-800 rounded-md flex items-center justify-center border border-slate-100 dark:border-slate-700 shrink-0">
                                           {file.type.includes('image') ? <FileImage className="w-4 h-4 text-blue-500" /> : <FileIcon className="w-4 h-4 text-slate-400 dark:text-slate-500 dark:text-slate-500" />}
                                         </div>
-                                        <div className="overflow-hidden min-w-0">
+                                        <div className="overflow-hidden min-w-0 text-left">
                                           <p className="text-[10px] font-black text-slate-900 dark:text-slate-100 truncate uppercase">{file.name}</p>
                                           <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 dark:text-slate-500">{file.size}</p>
                                         </div>
                                       </div>
-                                      <button type="button" onClick={() => removeFile(idx)} className="p-2 text-slate-300 hover:text-red-500 transition-colors shrink-0">
-                                        <X className="w-4 h-4" />
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          removeFile(idx);
+                                        }}
+                                        title="Remove this file"
+                                        aria-label="Remove file"
+                                        className="inline-flex items-center gap-1 rounded-md border border-slate-200 dark:border-slate-600 px-1.5 py-1 text-slate-600 dark:text-slate-300 hover:border-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-400 transition-colors shrink-0"
+                                      >
+                                        <X className="w-3.5 h-3.5 shrink-0" />
+                                        <span className="hidden sm:inline text-[9px] font-black uppercase tracking-wide">Remove</span>
                                       </button>
                                     </div>
-                                  ))
-                                )}
-                              </div>
+                                  );
+                                })
+                              )}
                             </div>
+                            <AttachmentLivePreviewPanel file={previewFile} />
                           </div>
                         </div>
                       </div>

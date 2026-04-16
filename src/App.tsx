@@ -25,6 +25,7 @@ import {
   saveDepartmentBuckets,
   upsertAudit,
   moveAudit,
+  stripAttachmentPayloadFromTransmission,
   type AuditBuckets,
 } from './utils/auditStore';
 import { notifyDepartmentSupervisorsOnSubmission } from './utils/notificationUtils';
@@ -108,7 +109,13 @@ function saveStoredNotifications(notifications: SystemNotification[]) {
 
 function saveStoredTransmissions(pending: Transmission[], history: Transmission[]) {
   try {
-    localStorage.setItem(TRANSMISSIONS_STORAGE_KEY, JSON.stringify({ pending, history }));
+    localStorage.setItem(
+      TRANSMISSIONS_STORAGE_KEY,
+      JSON.stringify({
+        pending: pending.map(stripAttachmentPayloadFromTransmission),
+        history: history.map(stripAttachmentPayloadFromTransmission),
+      })
+    );
   } catch {
     // ignore quota / private mode
   }

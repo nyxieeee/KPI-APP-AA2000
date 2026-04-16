@@ -22,9 +22,11 @@ import {
 } from '../utils/technicalWeightedKpi';
 import { computeCategoryAggregateMetrics } from '../components/employee/TechnicalCategoryAuditPanel';
 import { TechnicalLogDetailAuditReview } from '../components/TechnicalLogDetailAuditReview';
+import AttachmentLivePreviewPanel from '../components/AttachmentLivePreviewPanel';
 import { getEmployeeCategoryIcon } from '../utils/employeeCategoryIcons';
 import { SupervisorToast } from '../components/SupervisorToast';
 import { SupervisorIncentiveMatrixPanel } from '../components/SupervisorIncentiveMatrixPanel';
+import { hydrateAttachmentData, type HydratableAttachment } from '../utils/attachmentStore';
 import {
   type AuditBuckets,
   getDepartmentBucketForSupervisor,
@@ -69,7 +71,6 @@ import {
   Paperclip, 
   FileImage, 
   File as FileIcon, 
-  Download, 
   Target, 
   Trophy, 
   User as UserIcon, 
@@ -277,6 +278,7 @@ const TechnicalSupervisorDashboard: React.FC<Props> = ({
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const { railOpen } = useRoleSidenavRail();
   const [selectedItem, setSelectedLog] = useState<Transmission | null>(null);
+  const [previewFile, setPreviewFile] = useState<{ name: string; type?: string; size?: string; data?: string; storageKey?: string } | null>(null);
   const [announcementMsg, setAnnouncementMsg] = useState('');
   const [queueTab, setQueueTab] = useState<'pending' | 'history' | 'rejected'>('pending');
   const [searchTerm, setSearchTerm] = useState('');
@@ -360,18 +362,39 @@ const TechnicalSupervisorDashboard: React.FC<Props> = ({
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [announcements, dept]);
 
-  const handleDownload = (file: { name: string, data?: string }) => {
-    if (!file.data) {
+  const handlePreview = async (file: HydratableAttachment) => {
+    const hydratedFile = await hydrateAttachmentData(file);
+    if (!hydratedFile.data) return;
+    setPreviewFile(hydratedFile);
+  };
+
+  const handleDownload = async (file: HydratableAttachment) => {
+    const hydratedFile = await hydrateAttachmentData(file);
+    if (!hydratedFile.data) {
       alert("Could not download this file. Refresh the page or try again.");
       return;
     }
     const link = document.createElement('a');
-    link.href = file.data;
-    link.download = file.name;
+    link.href = hydratedFile.data;
+    link.download = hydratedFile.name;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    const first = selectedItem?.attachments?.[0];
+    if (!first) {
+      setPreviewFile(null);
+      return;
+    }
+    (async () => {
+      const hydrated = await hydrateAttachmentData(first as HydratableAttachment);
+      if (!cancelled && hydrated.data) setPreviewFile(hydrated);
+    })();
+    return () => { cancelled = true; };
+  }, [selectedItem]);
 
   useEffect(() => {
     setMobileNavConfig({
@@ -1662,9 +1685,25 @@ const TechnicalSupervisorDashboard: React.FC<Props> = ({
             <div className="space-y-4">
               <div className="flex items-center gap-3"><div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center"><Paperclip className="w-4 h-4 text-white" /></div><p className="text-[10px] font-black text-slate-900 dark:text-slate-100 uppercase tracking-wide">Attachments</p></div>
               {selectedItem.attachments && selectedItem.attachments.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <>
+                  <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                    <AttachmentLivePreviewPanel file={previewFile} />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {selectedItem.attachments.map((file, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg group/file overflow-hidden">
+                    <div
+                      key={idx}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => void handlePreview(file as HydratableAttachment)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          void handlePreview(file as HydratableAttachment);
+                        }
+                      }}
+                      className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg overflow-hidden cursor-pointer hover:border-blue-300 dark:hover:border-blue-600 transition-colors"
+                    >
                       <div className="flex items-center gap-3 min-w-0 flex-1 mr-4">
                         <div className="w-10 h-10 bg-slate-50 dark:bg-slate-900 rounded-xl flex items-center justify-center shrink-0">{file.type.includes('image') ? <FileImage className="w-5 h-5 text-blue-500" /> : <FileIcon className="w-5 h-5 text-slate-400 dark:text-slate-500 dark:text-slate-500" />}</div>
                         <div className="overflow-hidden min-w-0 flex-1">
@@ -1672,15 +1711,10 @@ const TechnicalSupervisorDashboard: React.FC<Props> = ({
                           <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 dark:text-slate-500">{file.size}</p>
                         </div>
                       </div>
-                      <button 
-                        onClick={() => handleDownload(file)}
-                        className="p-2 shrink-0 opacity-0 group-hover/file:opacity-100 text-slate-400 dark:text-slate-500 dark:text-slate-500 hover:text-blue-600 transition-all"
-                      >
-                        <Download className="w-4 h-4" />
-                      </button>
                     </div>
                   ))}
-                </div>
+                  </div>
+                </>
               ) : (
                 <p className="text-sm font-medium text-slate-400 dark:text-slate-500 dark:text-slate-500 italic py-2">No attached file</p>
               )}

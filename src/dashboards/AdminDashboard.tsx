@@ -2734,7 +2734,10 @@ const AdminDashboard: React.FC<Props> = ({
           </div>
 
           <div className="rounded-[1.75rem] bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-slate-600/70 p-5 lg:p-6 w-full min-w-0 overflow-x-auto">
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start" style={{ minWidth: '360px' }}>
+            <div
+              className="grid grid-cols-1 xl:grid-cols-[max-content_minmax(420px,1fr)] gap-6 items-start w-max min-w-full"
+              style={{ minWidth: '860px' }}
+            >
               {/* Panel 2/3: Department average — donut LEFT, Q1-Q4 bars RIGHT */}
               <div className="flex flex-col justify-start pb-4 xl:pb-0 border-b xl:border-b-0 border-slate-200 dark:border-slate-600/60 min-w-0">
                 <div className="flex items-center gap-3 mb-3 min-h-[36px]">
@@ -2751,7 +2754,7 @@ const AdminDashboard: React.FC<Props> = ({
                   </div>
                 </div>
                 {/* Donut + Q1-Q4: flex-shrink-0 wrapper so the whole unit never compresses */}
-                <div className={`flex items-center flex-shrink-0 w-max ${railOpen ? 'gap-6' : 'gap-10'}`}>
+                <div className="flex items-center flex-shrink-0 w-max gap-10">
                   <div className="relative w-36 h-36 flex-shrink-0">
                     <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
                       <circle cx="50" cy="50" r="40" fill="none" stroke="rgb(30 64 175 / 0.25)" strokeWidth="10" strokeLinecap="round" />
@@ -2767,19 +2770,19 @@ const AdminDashboard: React.FC<Props> = ({
                       </span>
                     </div>
                   </div>
-                  {/* Q1–Q4 bars — thicker/taller when sidebar closed, slim when open */}
+                  {/* Q1–Q4 bars keep constant size; container scrolls instead of shrinking */}
                   <div
                     className="flex items-end flex-shrink-0"
-                    style={{ height: railOpen ? '120px' : '144px', gap: railOpen ? '6px' : '10px' }}
+                    style={{ height: '144px', gap: '10px' }}
                   >
                     {['Q1', 'Q2', 'Q3', 'Q4'].map((label, idx) => {
                       const value = deptQuarterScores[idx] || 0;
                       const animatedVal = animatedDeptQuarterScores[idx] ?? 0;
                       const heightPct = Math.min(100, Math.max(0, animatedVal));
-                      const barWidth = railOpen ? '14px' : '22px';
+                      const barWidth = '22px';
                       return (
                         <div key={label} className="flex flex-col items-center justify-end gap-0.5 flex-shrink-0 h-full" style={{ width: barWidth }}>
-                          <span className={`font-black text-slate-600 dark:text-slate-400 dark:text-slate-400 tabular-nums text-center leading-none ${railOpen ? 'text-[7px]' : 'text-[8px]'}`}>
+                          <span className="font-black text-slate-600 dark:text-slate-400 dark:text-slate-400 tabular-nums text-center leading-none text-[8px]">
                             {Math.round(value)}%
                           </span>
                           <div className="relative flex-1 w-full rounded-sm bg-slate-200 dark:bg-slate-700 overflow-hidden flex items-end">
@@ -2788,7 +2791,7 @@ const AdminDashboard: React.FC<Props> = ({
                               style={{ height: `${heightPct}%` }}
                             />
                           </div>
-                          <span className={`font-black uppercase tracking-wide text-slate-500 dark:text-slate-400 dark:text-slate-400 leading-none ${railOpen ? 'text-[7px]' : 'text-[8px]'}`}>
+                          <span className="font-black uppercase tracking-wide text-slate-500 dark:text-slate-400 dark:text-slate-400 leading-none text-[8px]">
                             {label}
                           </span>
                         </div>
