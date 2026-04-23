@@ -1,10 +1,10 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { User, UserRole, Transmission, SystemStats, AuditEntry, SystemNotification, Announcement, DepartmentWeights } from './types';
-import LoginCard from './components/LoginCard';
-import Dashboard from './components/Dashboard';
-import Navbar from './components/Navbar';
-import NotFound from './components/NotFound';
+import LoginCard from './components/auth/LoginCard';
+import Dashboard from './components/workspace/Dashboard';
+import Navbar from './components/navigation/Navbar';
+import NotFound from './components/system/NotFound';
 import { AuthActionsProvider } from './contexts/AuthActionsContext';
 import { MobileSidenavProvider } from './contexts/MobileSidenavContext';
 import { RoleSidenavRailProvider, useRoleSidenavRail } from './contexts/RoleSidenavRailContext';
@@ -829,3 +829,6 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+
+

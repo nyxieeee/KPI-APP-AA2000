@@ -105,9 +105,9 @@ import {
 import { useAuthActions } from '../contexts/AuthActionsContext';
 import { useMobileSidenav } from '../contexts/MobileSidenavContext';
 import { useRoleSidenavRail } from '../contexts/RoleSidenavRailContext';
-import { ValidationTabs } from '../components/ValidationTabs';
-import { GradingWeightControl } from '../components/GradingWeightControl';
-import { AnnualSummaryPanel } from '../components/AnnualSummaryPanel';
+import { ValidationTabs } from '../components/forms/ValidationTabs';
+import { GradingWeightControl } from '../components/forms/GradingWeightControl';
+import { AnnualSummaryPanel } from '../components/panels/AnnualSummaryPanel';
 
 function getCriterionGradingSystemIdx(elements: unknown[], mode: 'textbox' | 'checkbox'): number {
   if (mode === 'checkbox') {
@@ -5844,3 +5844,5 @@ const AdminDashboard: React.FC<Props> = ({
 };
 
 export default AdminDashboard;
+
+
