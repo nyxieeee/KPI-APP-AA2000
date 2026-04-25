@@ -221,6 +221,102 @@ const AdminDashboard: React.FC<Props> = ({
   const [isAtBottom] = useState(true);
   const [showExportSuccess, setShowExportSuccess] = useState(false);
   const [toastMessage, setToastMessage] = useState({ title: '', detail: '' });
+  const [backendRoles, setBackendRoles] = useState<string[]>([]);
+
+  const resolveBackendApiBaseUrl = (): string => {
+    const raw =
+      ((import.meta as any)?.env?.VITE_BACKEND_API_URL as string | undefined) ??
+      ((import.meta as any)?.env?.BACKEND_API_URL as string | undefined) ??
+      '';
+    return String(raw || '').trim().replace(/\/+$/, '');
+  };
+
+  useEffect(() => {
+    const baseUrl = resolveBackendApiBaseUrl();
+    if (!baseUrl) return;
+
+    let cancelled = false;
+    const loadRoles = async () => {
+      const candidates = [
+        `${baseUrl}/roles/get/roles`,
+        `${baseUrl}/service/kpi/post/get/roles`,
+      ];
+      for (const url of candidates) {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) continue;
+          const data = await res.json();
+          const names = Array.isArray(data)
+            ? data
+                .map((x: any) => String(x?.r_name ?? '').trim())
+                .filter((name: string) => name.length > 0)
+            : [];
+          if (!cancelled) setBackendRoles(names);
+          return;
+        } catch {
+          // try next candidate
+        }
+      }
+      // non-blocking; save endpoint has fallback for r_ID
+    };
+
+    loadRoles();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const syncCriteriaAdminSnapshot = async (dept: string, categories: CategoryWeightItem[]): Promise<boolean> => {
+    const baseUrl = resolveBackendApiBaseUrl();
+    if (!baseUrl) {
+      triggerToast('API not configured', 'Set VITE_BACKEND_API_URL in .env to sync admin criteria.');
+      return false;
+    }
+
+    const rates = categories.slice(0, 6).map((c) => Math.max(0, Number(c.weightPct) || 0));
+    const matchedRoleName =
+      backendRoles.find((name) => name.toLowerCase() === String(user.role).toLowerCase()) ??
+      backendRoles.find((name) => name.toLowerCase() === String(user.department || '').toLowerCase());
+
+    const payload = {
+      c_ID: dept,
+      // Backend now exposes /get/roles with r_name values; use matching role name when available.
+      r_ID: matchedRoleName || String(user.role || user.id || user.name),
+      rate_1: rates[0] ?? 0,
+      rate_2: rates[1] ?? 0,
+      rate_3: rates[2] ?? 0,
+      rate_4: rates[3] ?? 0,
+      rate_5: rates[4] ?? 0,
+      rate_6: rates[5] ?? 0,
+    };
+
+    try {
+      const res = await fetch(`${baseUrl}/service/kpi/post/save/criteria_admin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        let message = `HTTP ${res.status}`;
+        try {
+          const body = await res.json();
+          if (body?.message) message = String(body.message);
+        } catch {
+          // ignore parse failure
+        }
+        throw new Error(message);
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Failed syncing admin criteria snapshot:', err);
+      triggerToast('Criteria sync failed', 'Saved locally, but backend API sync failed.');
+      return false;
+    }
+  };
 
   // Log Filtering State
   const [logFilterDept, setLogFilterDept] = useState<string>('all');
@@ -3350,7 +3446,7 @@ const AdminDashboard: React.FC<Props> = ({
                             ? 'Changes cannot be confirmed until total weight equals 100%.'
                             : 'Changes cannot be confirmed until each category\u2019s criterion points total its weighted impact % (e.g. 35% \u2192 35 pts).'
                     }
-                    onClick={() => {
+                    onClick={async () => {
                       if (
                         gradingEditDraft &&
                         gradingEditDept &&
@@ -3365,6 +3461,10 @@ const AdminDashboard: React.FC<Props> = ({
                           JSON.parse(JSON.stringify(merged)) as DepartmentWeights
                         );
                         onUpdateDepartmentWeights(next);
+                        const synced = await syncCriteriaAdminSnapshot(gradingEditDept, gradingEditDraft);
+                        if (synced) {
+                          triggerToast('Saved', 'Department weights saved and synced to backend API.');
+                        }
                         clearGradingEditSession();
                       }
                       setGradingEditDept(null);
