@@ -225,9 +225,15 @@ const AdminDashboard: React.FC<Props> = ({
 
   const resolveBackendApiBaseUrl = (): string => {
     const envObj = (import.meta as any).env || {};
+    const multiApiBase = String(envObj.VITE_API_BASE_URLS || '')
+      .split(',')
+      .map((s: string) => s.trim())
+      .find((s: string) => s.length > 0);
     const raw =
       (envObj.VITE_BACKEND_API_URL as string | undefined) ??
       (envObj.BACKEND_API_URL as string | undefined) ??
+      (envObj.VITE_API_BASE_URL as string | undefined) ??
+      (multiApiBase as string | undefined) ??
       '';
     return String(raw || '').trim().replace(/\/+$/, '');
   };
@@ -270,7 +276,10 @@ const AdminDashboard: React.FC<Props> = ({
   const syncCriteriaAdminSnapshot = async (dept: string, categories: CategoryWeightItem[]): Promise<boolean> => {
     const baseUrl = resolveBackendApiBaseUrl();
     if (!baseUrl) {
-      triggerToast('API not configured', 'Set BACKEND_API_URL (or VITE_BACKEND_API_URL) in .env and restart dev server.');
+      triggerToast(
+        'Saved locally only',
+        'Department weights were saved locally. Set VITE_BACKEND_API_URL (or VITE_API_BASE_URL) to enable API sync.'
+      );
       return false;
     }
 
@@ -308,13 +317,13 @@ const AdminDashboard: React.FC<Props> = ({
         } catch {
           // ignore parse failure
         }
-        throw new Error(message);
+        console.warn('Criteria admin sync failed:', message);
+        return false;
       }
 
       return true;
     } catch (err) {
-      console.error('Failed syncing admin criteria snapshot:', err);
-      triggerToast('Criteria sync failed', 'Saved locally, but backend API sync failed.');
+      console.warn('Criteria admin sync request failed:', err);
       return false;
     }
   };
@@ -3465,6 +3474,8 @@ const AdminDashboard: React.FC<Props> = ({
                         const synced = await syncCriteriaAdminSnapshot(gradingEditDept, gradingEditDraft);
                         if (synced) {
                           triggerToast('Saved', 'Department weights saved and synced to backend API.');
+                        } else {
+                          triggerToast('Saved locally only', 'Department weights were saved in this app.');
                         }
                         clearGradingEditSession();
                       }
