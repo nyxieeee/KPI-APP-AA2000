@@ -601,6 +601,7 @@ const TechnicalDashboard: React.FC<Props> = ({ user, validatedStats, pendingTran
       setCompletedCategories([]);
       categoryInputsRef.current = {};
       setDraftRevision(v => v + 1);
+      setPreviewFile(null);
       setFormData({
         jobId: '', clientSite: '', jobType: 'Project Execution Quality', startTime: '', endTime: '',
         systemStatus: 'Operational', projectReport: '', attachments: [],

@@ -462,6 +462,7 @@ const AccountingDashboard: React.FC<Props> = ({ user, validatedStats, announceme
       setCompletedCategories([]);
       categoryInputsRef.current = {};
       setDraftRevision(v => v + 1);
+      setPreviewFile(null);
       setFormData({
         jobId: `WO-ACC-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
         clientSite: 'AA2000 Corporate HQ',

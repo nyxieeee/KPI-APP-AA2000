@@ -552,6 +552,7 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
       setCompletedCategories([]);
       categoryInputsRef.current = {};
       setDraftRevision(v => v + 1);
+      setPreviewFile(null);
       setFormData({
         jobId: '', clientSite: '', jobType: 'Project Execution Quality', startTime: '', endTime: '',
         systemStatus: 'Operational', projectReport: '', attachments: [],

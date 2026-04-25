@@ -644,6 +644,7 @@ const MarketingDashboard: React.FC<Props> = ({ user, validatedStats, pendingTran
       setCompletedCategories([]);
       categoryInputsRef.current = {};
       setDraftRevision(v => v + 1);
+      setPreviewFile(null);
       setFormData({
         jobId: '', clientSite: '', jobType: CLASSIFICATIONS[0].name, startTime: '', endTime: '',
         systemStatus: 'Active', projectReport: '', attachments: [],

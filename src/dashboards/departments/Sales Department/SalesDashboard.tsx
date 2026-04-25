@@ -545,6 +545,7 @@ const SalesDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmis
       setCompletedCategories([]);
       categoryInputsRef.current = {};
       setDraftRevision(v => v + 1);
+      setPreviewFile(null);
       setFormData({
         jobId: `WO-SALES-${Math.random().toString(36).substring(2, 7).toUpperCase()}`,
         clientSite: 'AA2000 Internal Site',
