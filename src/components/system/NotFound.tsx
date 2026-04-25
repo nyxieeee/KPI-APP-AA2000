@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FileQuestion, Home, LogIn } from 'lucide-react';
+import { FileQuestion, Home } from 'lucide-react';
 
 const NotFound: React.FC = () => {
   const location = useLocation();
@@ -26,13 +26,6 @@ const NotFound: React.FC = () => {
           >
             <Home className="w-4 h-4" />
             Dashboard
-          </Link>
-          <Link
-            to="/login"
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl font-bold text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
-          >
-            <LogIn className="w-4 h-4" />
-            Log in
           </Link>
         </div>
       </div>

@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from 'react-router-dom';
 import { User, UserRole, Transmission, SystemStats, AuditEntry, SystemNotification, Announcement, DepartmentWeights } from './types';
-import LoginCard from './components/auth/LoginCard';
 import Dashboard from './components/workspace/Dashboard';
 import Navbar from './components/navigation/Navbar';
 import NotFound from './components/system/NotFound';
@@ -36,6 +35,12 @@ import {
   type AuditBuckets,
 } from './utils/auditStore';
 import { notifyDepartmentSupervisorsOnSubmission } from './utils/notificationUtils';
+import {
+  readPortalLaunchFromUrl,
+  clearPortalLaunchFromUrl,
+  mapPortalSessionToUser,
+} from './utils/portalSession';
+import { fetchPortalSessionByToken, hasPortalApiConfigured } from './utils/portalApi';
 
 const VALID_DEPARTMENTS = ['technical', 'sales', 'marketing', 'accounting', 'admin', 'it'];
 const deptSlug = (d: string) => (d || 'technical').toLowerCase();
@@ -65,9 +70,8 @@ function DashboardGate({
   dashboardLayout: React.ReactNode;
 }) {
   const { department: paramDept } = useParams<{ department: string }>();
-  const location = useLocation();
   if (!user) {
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+    return <NoPortalSession />;
   }
   const slug = deptSlug(user.department);
   const paramLower = paramDept?.toLowerCase() ?? '';
@@ -78,6 +82,21 @@ function DashboardGate({
     return <Navigate to={`/dashboard/${slug}`} replace />;
   }
   return <>{dashboardLayout}</>;
+}
+
+/** Shown when the KPI app is opened without a portal session in the URL. */
+function NoPortalSession() {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-900">
+      <div className="max-w-md w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-6 shadow-sm text-center">
+        <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">No active session</h1>
+        <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+          This workspace is launched from the AA2000 portal. Please open it from your portal so a session
+          can be established.
+        </p>
+      </div>
+    </div>
+  );
 }
 
 const INITIAL_REGISTRY = [
@@ -389,53 +408,106 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
     ].slice(0, 500));
   }, [user]);
 
-  // Restore session user on same-tab refresh only (sessionStorage clears on tab/browser close).
-  // Credentials, role, and email are never stored in localStorage.
+  // Hydrate `user` in this priority order:
+  //   1. Portal launch params in the URL (`__launch`/`__actor`, decrypted with VITE_LAUNCH_AES_KEY).
+  //      Resolve the session token via the portal API (`GET /session/:token`) to get the full
+  //      account + employee record, then map to `User`.
+  //   2. sessionStorage on same-tab refresh (so we don't re-fetch the portal on every nav).
+  // sessionStorage clears on tab/browser close — credentials never touch localStorage.
   useEffect(() => {
-    const raw = sessionRead(SESSION_USER_STORAGE_KEY);
-    if (!raw) return;
-    try {
-      const parsed = JSON.parse(raw) as Partial<User> | null;
-      if (!parsed || typeof parsed !== 'object') return;
-      if (
-        typeof parsed.id === 'string' &&
-        typeof parsed.name === 'string' &&
-        typeof parsed.department === 'string' &&
-        typeof parsed.role === 'string'
-      ) {
-        setUser(parsed as User);
-        onUserChange(parsed.id);
-      }
-    } catch {
-      sessionRemove(SESSION_USER_STORAGE_KEY);
-    }
-  }, [onUserChange]);
+    let cancelled = false;
 
-  const handleLogin = useCallback((loggedInUser: User) => {
-    const stored = loadDepartmentWeightsFromStorage();
-    if (stored) {
-      setDepartmentWeights(
-        mergeDepartmentWeightsWithProgramDefaults(
-          migrateStoredDepartmentWeights(stored),
-          BUNDLED_DEFAULT_DEPARTMENT_WEIGHTS
-        )
+    const adoptUser = (next: User, source: 'portal' | 'restore') => {
+      const stored = loadDepartmentWeightsFromStorage();
+      if (stored) {
+        setDepartmentWeights(
+          mergeDepartmentWeightsWithProgramDefaults(
+            migrateStoredDepartmentWeights(stored),
+            BUNDLED_DEFAULT_DEPARTMENT_WEIGHTS
+          )
+        );
+      }
+      setUser(next);
+      onUserChange(next.id);
+      sessionWrite(SESSION_USER_STORAGE_KEY, JSON.stringify(next));
+      addNotification(`Welcome, ${next.name}.`, next.id, 'SUCCESS');
+      addAuditEntry(
+        source === 'portal' ? 'SESSION_PORTAL' : 'SESSION_RESTORE',
+        `Role: ${next.role} | AccountID: ${next.id}`,
+        'OK',
+        next.name
       );
-    }
-    setUser(loggedInUser);
-    onUserChange(loggedInUser.id);
-    sessionWrite(SESSION_USER_STORAGE_KEY, JSON.stringify(loggedInUser));
-    addNotification(`Welcome, ${loggedInUser.name}.`, loggedInUser.id, 'SUCCESS');
-    addAuditEntry('SESSION_INIT', `Role: ${loggedInUser.role}`, 'OK', loggedInUser.name);
-    const returnPath = (location.state as { from?: string } | null)?.from || '/dashboard';
-    navigate(returnPath, { replace: true });
-  }, [onUserChange, addNotification, addAuditEntry, navigate, location.state]);
+    };
+
+    const restoreFromSession = (): boolean => {
+      const raw = sessionRead(SESSION_USER_STORAGE_KEY);
+      if (!raw) return false;
+      try {
+        const parsed = JSON.parse(raw) as Partial<User> | null;
+        if (
+          parsed &&
+          typeof parsed === 'object' &&
+          typeof parsed.id === 'string' &&
+          typeof parsed.name === 'string' &&
+          typeof parsed.department === 'string' &&
+          typeof parsed.role === 'string'
+        ) {
+          adoptUser(parsed as User, 'restore');
+          return true;
+        }
+      } catch {
+        sessionRemove(SESSION_USER_STORAGE_KEY);
+      }
+      return false;
+    };
+
+    (async () => {
+      const launch = await readPortalLaunchFromUrl();
+      if (cancelled) return;
+
+      // Strip launch params from URL immediately so they don't linger in history,
+      // even if the API call below fails — the user can reload from the portal.
+      if (launch.sessionToken || launch.accountId || launch.encrypted) {
+        clearPortalLaunchFromUrl();
+      }
+
+      if (launch.sessionToken) {
+        if (!hasPortalApiConfigured()) {
+          console.error('[App] Portal handed off a session token but VITE_API_BASE_URL is not set — cannot resolve user.');
+          restoreFromSession();
+          return;
+        }
+        try {
+          const data = await fetchPortalSessionByToken(launch.sessionToken);
+          if (cancelled) return;
+          if (data) {
+            const next = mapPortalSessionToUser(data);
+            if (next) {
+              adoptUser(next, 'portal');
+              return;
+            }
+            console.error('[App] Portal session resolved but could not map to a KPI user.');
+          }
+        } catch (err) {
+          if (cancelled) return;
+          console.error('[App] Failed to resolve portal session:', err);
+        }
+      }
+
+      restoreFromSession();
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [onUserChange, addNotification, addAuditEntry]);
 
   const handleLogout = useCallback(() => {
     addAuditEntry('SESSION_TERM', 'Disconnected', 'INFO');
     setUser(null);
     onUserChange(null);
     sessionRemove(SESSION_USER_STORAGE_KEY);
-    navigate('/login');
+    navigate('/');
   }, [onUserChange, addAuditEntry, navigate]);
 
   const handleTransmit = useCallback((transmission: Transmission) => {
@@ -687,7 +759,7 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
 
   const loggedInHomePath = user
     ? `/dashboard/${deptSlug(user.department)}`
-    : '/login';
+    : '/';
 
   const dashboardLayout =
     user == null
@@ -761,29 +833,12 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
   return (
     <Routes>
       <Route
-        path="/login"
-        element={
-          user ? (
-            <Navigate to={loggedInHomePath} replace />
-          ) : (
-            <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900 flex items-center justify-center p-4">
-              <div className="pointer-events-none absolute -top-24 -right-24 h-[28rem] w-[28rem] rounded-full bg-blue-500/10 blur-3xl" aria-hidden />
-              <div className="pointer-events-none absolute -bottom-28 -left-28 h-[34rem] w-[34rem] rounded-full bg-cyan-400/10 blur-3xl" aria-hidden />
-              <div className="pointer-events-none absolute top-1/3 left-1/2 -translate-x-1/2 h-40 w-[32rem] rounded-full bg-indigo-500/5 blur-3xl" aria-hidden />
-              <div className="w-full max-w-md space-y-6 relative z-10">
-                <LoginCard onLogin={handleLogin} onAddAuditEntry={addAuditEntry} registry={registry} />
-              </div>
-            </div>
-          )
-        }
-      />
-      <Route
         path="/dashboard"
         element={
           user ? (
             <Navigate to={loggedInHomePath} replace />
           ) : (
-            <Navigate to="/login" state={{ from: '/dashboard' }} replace />
+            <NoPortalSession />
           )
         }
       />
@@ -797,7 +852,7 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
           user ? (
             <Navigate to={loggedInHomePath} replace />
           ) : (
-            <Navigate to="/login" state={{ from: location.pathname === '/' ? '/dashboard' : location.pathname }} replace />
+            <NoPortalSession />
           )
         }
       />
