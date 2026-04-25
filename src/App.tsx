@@ -12,7 +12,14 @@ import {
   DEPARTMENT_WEIGHTS_STORAGE_KEY,
   loadDepartmentWeightsFromStorage,
   saveDepartmentWeightsToStorage,
+  readDepartmentWeightsSchemaVersion,
+  writeDepartmentWeightsSchemaVersion,
+  CURRENT_DEPARTMENT_WEIGHTS_SCHEMA,
 } from './utils/departmentWeightsStorage';
+import {
+  migrateStoredDepartmentWeights,
+  mergeDepartmentWeightsWithProgramDefaults,
+} from './utils/departmentWeightsMerge';
 import { DarkModeProvider, useDarkMode } from './contexts/DarkModeContext';
 import { GRADING_EDIT_SESSION_KEY } from './utils/gradingEditSession';
 import {
@@ -150,6 +157,64 @@ function RailAwareMain({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Bundled program defaults: merged into any stored weights so labels/weights from admin always align with criterion shells. */
+const BUNDLED_DEFAULT_DEPARTMENT_WEIGHTS: DepartmentWeights = {
+  Technical: [
+    { label: 'Project Execution Quality', weightPct: 50, content: [{ label: 'Zero Back-Job Rate', maxpoints: 25 }, { label: 'First-Time Fix Quality', maxpoints: 12 }, { label: 'Technical Compliance & Standards', maxpoints: 7 }, { label: 'Schedule Adherence', maxpoints: 6 }] },
+    { label: 'Client Satisfaction & Turnover', weightPct: 25, content: [{ label: 'Client Satisfaction Score', maxpoints: 15 }, { label: 'Client Retention Rate', maxpoints: 10 }] },
+    { label: 'Team Leadership & Accountability', weightPct: 15, content: [{ label: 'Team Coordination', maxpoints: 8 }, { label: 'Accountability & Ownership', maxpoints: 7 }] },
+    { label: 'Attendance & Discipline', weightPct: 5, content: [{ label: 'Attendance Rate', maxpoints: 3 }, { label: 'Discipline & Conduct', maxpoints: 2 }] },
+    { label: 'Additional Responsibilities', weightPct: 3, content: [{ label: 'Additional Tasks Completed', maxpoints: 3 }] },
+    { label: 'Administrative Excellence', weightPct: 2, content: [{ label: 'Report Accuracy & Timeliness', maxpoints: 2 }] },
+  ],
+  IT: [
+    { label: 'System Uptime & Reliability', weightPct: 50, content: [{ label: 'Uptime Percentage', maxpoints: 30 }, { label: 'Incident Prevention', maxpoints: 20 }] },
+    { label: 'Technical Support Quality', weightPct: 25, content: [{ label: 'Ticket Resolution Rate', maxpoints: 15 }, { label: 'User Satisfaction Score', maxpoints: 10 }] },
+    { label: 'Security & Compliance', weightPct: 15, content: [{ label: 'Security Audit Score', maxpoints: 9 }, { label: 'Policy Compliance', maxpoints: 6 }] },
+    { label: 'Attendance & Discipline', weightPct: 5, content: [{ label: 'Attendance Rate', maxpoints: 3 }, { label: 'Discipline & Conduct', maxpoints: 2 }] },
+    { label: 'Additional Responsibilities', weightPct: 3, content: [{ label: 'Additional Tasks Completed', maxpoints: 3 }] },
+    { label: 'Administrative Excellence', weightPct: 2, content: [{ label: 'Documentation & Process Compliance', maxpoints: 2 }] },
+  ],
+  Sales: [
+    { label: 'Revenue Score', weightPct: 50, content: [{ label: 'Revenue vs Target', maxpoints: 50 }] },
+    { label: 'Accounts Score', weightPct: 25, content: [{ label: 'Accounts Closed', maxpoints: 25 }] },
+    { label: 'Activities Score', weightPct: 15, content: [{ label: 'Meetings Conducted', maxpoints: 8 }, { label: 'Calls Made', maxpoints: 7 }] },
+    { label: 'Attendance & Discipline', weightPct: 5, content: [{ label: 'Attendance Rate', maxpoints: 3 }, { label: 'Discipline & Conduct', maxpoints: 2 }] },
+    { label: 'Additional Responsibilities', weightPct: 3, content: [{ label: 'Additional Tasks Completed', maxpoints: 3 }] },
+    { label: 'Administrative Excellence', weightPct: 2, content: [{ label: 'Process & documentation compliance', maxpoints: 2 }] },
+  ],
+  Marketing: [
+    { label: 'Campaign Execution & Quality', weightPct: 50, content: [{ label: 'Campaign Completion Rate', maxpoints: 25 }, { label: 'Creative Quality Score', maxpoints: 25 }] },
+    { label: 'Lead Generation & Sales Support', weightPct: 25, content: [{ label: 'Leads Generated', maxpoints: 15 }, { label: 'Sales Enablement Score', maxpoints: 10 }] },
+    { label: 'Digital & Social Media Performance', weightPct: 15, content: [{ label: 'Engagement Rate', maxpoints: 9 }, { label: 'Follower Growth', maxpoints: 6 }] },
+    { label: 'Attendance & Discipline', weightPct: 5, content: [{ label: 'Attendance Rate', maxpoints: 3 }, { label: 'Punctuality & conduct', maxpoints: 2 }] },
+    { label: 'Additional Responsibilities', weightPct: 3, content: [{ label: 'Additional Tasks Completed', maxpoints: 3 }] },
+    { label: 'Administrative Excellence', weightPct: 2, content: [{ label: 'Process compliance', maxpoints: 2 }] },
+  ],
+  Accounting: [
+    { label: 'Accounting Excellence', weightPct: 50, content: [{ label: 'Financial Report Accuracy', maxpoints: 30 }, { label: 'Audit Compliance Score', maxpoints: 20 }] },
+    { label: 'Purchasing Excellence', weightPct: 30, content: [{ label: 'Purchase Order Accuracy', maxpoints: 15 }, { label: 'Vendor Management Score', maxpoints: 15 }] },
+    { label: 'Purchasing/Admin Excellence', weightPct: 10, content: [{ label: 'PO & admin coordination', maxpoints: 5 }, { label: 'Procurement documentation', maxpoints: 5 }] },
+    { label: 'Attendance & Discipline', weightPct: 5, content: [{ label: 'Attendance Rate', maxpoints: 3 }, { label: 'Discipline & Conduct', maxpoints: 2 }] },
+    { label: 'Additional Responsibilities', weightPct: 3, content: [{ label: 'Additional Tasks Completed', maxpoints: 3 }] },
+    { label: 'Administrative Excellence', weightPct: 2, content: [{ label: 'Office administration & compliance', maxpoints: 2 }] },
+  ],
+};
+
+function createInitialDepartmentWeightsFromStorage(): DepartmentWeights {
+  const schema = readDepartmentWeightsSchemaVersion();
+  if (schema < CURRENT_DEPARTMENT_WEIGHTS_SCHEMA) {
+    writeDepartmentWeightsSchemaVersion(CURRENT_DEPARTMENT_WEIGHTS_SCHEMA);
+    return BUNDLED_DEFAULT_DEPARTMENT_WEIGHTS;
+  }
+  const stored = loadDepartmentWeightsFromStorage();
+  if (!stored) return BUNDLED_DEFAULT_DEPARTMENT_WEIGHTS;
+  return mergeDepartmentWeightsWithProgramDefaults(
+    migrateStoredDepartmentWeights(stored),
+    BUNDLED_DEFAULT_DEPARTMENT_WEIGHTS
+  );
+}
+
 interface AppInnerProps {
   onUserChange: (userId: string | null) => void;
 }
@@ -196,110 +261,8 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
   const [registry, setRegistry] = useState<typeof INITIAL_REGISTRY>(INITIAL_REGISTRY);
   const [adminUsers, setAdminUsers] = useState<Record<string, string[]>>(INITIAL_ADMIN_USERS);
 
-  const DEFAULT_DEPARTMENT_WEIGHTS: DepartmentWeights = {
-    Technical: [
-      { label: 'Project Execution Quality', weightPct: 50, content: [{ label: 'Zero Back-Job Rate', maxpoints: 25 }, { label: 'First-Time Fix Quality', maxpoints: 12 }, { label: 'Technical Compliance & Standards', maxpoints: 7 }, { label: 'Schedule Adherence', maxpoints: 6 }] },
-      { label: 'Client Satisfaction & Turnover', weightPct: 25, content: [{ label: 'Client Satisfaction Score', maxpoints: 15 }, { label: 'Client Retention Rate', maxpoints: 10 }] },
-      { label: 'Team Leadership & Accountability', weightPct: 15, content: [{ label: 'Team Coordination', maxpoints: 8 }, { label: 'Accountability & Ownership', maxpoints: 7 }] },
-      { label: 'Attendance & Discipline', weightPct: 5, content: [{ label: 'Attendance Rate', maxpoints: 3 }, { label: 'Discipline & Conduct', maxpoints: 2 }] },
-      { label: 'Additional Responsibilities', weightPct: 3, content: [{ label: 'Additional Tasks Completed', maxpoints: 3 }] },
-      { label: 'Administrative Excellence', weightPct: 2, content: [{ label: 'Report Accuracy & Timeliness', maxpoints: 2 }] },
-    ],
-    IT: [
-      { label: 'System Uptime & Reliability', weightPct: 50, content: [{ label: 'Uptime Percentage', maxpoints: 30 }, { label: 'Incident Prevention', maxpoints: 20 }] },
-      { label: 'Technical Support Quality', weightPct: 25, content: [{ label: 'Ticket Resolution Rate', maxpoints: 15 }, { label: 'User Satisfaction Score', maxpoints: 10 }] },
-      { label: 'Security & Compliance', weightPct: 15, content: [{ label: 'Security Audit Score', maxpoints: 9 }, { label: 'Policy Compliance', maxpoints: 6 }] },
-      { label: 'Attendance & Discipline', weightPct: 5, content: [{ label: 'Attendance Rate', maxpoints: 3 }, { label: 'Discipline & Conduct', maxpoints: 2 }] },
-      { label: 'Additional Responsibilities', weightPct: 3, content: [{ label: 'Additional Tasks Completed', maxpoints: 3 }] },
-      { label: 'Administrative Excellence', weightPct: 2, content: [{ label: 'Documentation & Process Compliance', maxpoints: 2 }] },
-    ],
-    Sales: [
-      { label: 'Revenue Score', weightPct: 50, content: [{ label: 'Revenue vs Target', maxpoints: 50 }] },
-      { label: 'Accounts Score', weightPct: 25, content: [{ label: 'Accounts Closed', maxpoints: 25 }] },
-      { label: 'Activities Score', weightPct: 15, content: [{ label: 'Meetings Conducted', maxpoints: 8 }, { label: 'Calls Made', maxpoints: 7 }] },
-      { label: 'Attendance & Discipline', weightPct: 5, content: [{ label: 'Attendance Rate', maxpoints: 3 }, { label: 'Discipline & Conduct', maxpoints: 2 }] },
-      { label: 'Additional Responsibilities', weightPct: 3, content: [{ label: 'Additional Tasks Completed', maxpoints: 3 }] },
-      { label: 'Administrative Excellence', weightPct: 2, content: [{ label: 'Process & documentation compliance', maxpoints: 2 }] },
-    ],
-    Marketing: [
-      { label: 'Campaign Execution & Quality', weightPct: 50, content: [{ label: 'Campaign Completion Rate', maxpoints: 25 }, { label: 'Creative Quality Score', maxpoints: 25 }] },
-      { label: 'Lead Generation & Sales Support', weightPct: 25, content: [{ label: 'Leads Generated', maxpoints: 15 }, { label: 'Sales Enablement Score', maxpoints: 10 }] },
-      { label: 'Digital & Social Media Performance', weightPct: 15, content: [{ label: 'Engagement Rate', maxpoints: 9 }, { label: 'Follower Growth', maxpoints: 6 }] },
-      { label: 'Attendance & Discipline', weightPct: 5, content: [{ label: 'Attendance Rate', maxpoints: 3 }, { label: 'Punctuality & conduct', maxpoints: 2 }] },
-      { label: 'Additional Responsibilities', weightPct: 3, content: [{ label: 'Additional Tasks Completed', maxpoints: 3 }] },
-      { label: 'Administrative Excellence', weightPct: 2, content: [{ label: 'Process compliance', maxpoints: 2 }] },
-    ],
-    Accounting: [
-      { label: 'Accounting Excellence', weightPct: 50, content: [{ label: 'Financial Report Accuracy', maxpoints: 30 }, { label: 'Audit Compliance Score', maxpoints: 20 }] },
-      { label: 'Purchasing Excellence', weightPct: 30, content: [{ label: 'Purchase Order Accuracy', maxpoints: 15 }, { label: 'Vendor Management Score', maxpoints: 15 }] },
-      { label: 'Purchasing/Admin Excellence', weightPct: 10, content: [{ label: 'PO & admin coordination', maxpoints: 5 }, { label: 'Procurement documentation', maxpoints: 5 }] },
-      { label: 'Attendance & Discipline', weightPct: 5, content: [{ label: 'Attendance Rate', maxpoints: 3 }, { label: 'Discipline & Conduct', maxpoints: 2 }] },
-      { label: 'Additional Responsibilities', weightPct: 3, content: [{ label: 'Additional Tasks Completed', maxpoints: 3 }] },
-      { label: 'Administrative Excellence', weightPct: 2, content: [{ label: 'Office administration & compliance', maxpoints: 2 }] },
-    ],
-  };
-  /**
-   * Detect the old auto-generated default criterion UI pattern:
-   * elements = [textboxButton, basicGradingSystem with single {min:0,max:null,score:maxpoints}].
-   * These should be stripped so criteria use direct manual score entry instead.
-   */
-  const isDefaultGeneratedElements = (elements: any[], maxpoints: number): boolean => {
-    if (!Array.isArray(elements) || elements.length !== 2) return false;
-    const [a, b] = elements;
-    if (a?.type !== 'textboxButton') return false;
-    if (b?.type !== 'basicGradingSystem') return false;
-    const cps = b?.checkpoints;
-    if (!Array.isArray(cps) || cps.length !== 1) return false;
-    const cp = cps[0];
-    return cp?.min === 0 && (cp?.max === null || cp?.max === undefined) && Number(cp?.score) === maxpoints;
-  };
-
-  /** Strip old auto-generated basicGradingSystem from stored criteria so all dashboards use direct score entry. */
-  const migrateStoredWeights = (weights: DepartmentWeights): DepartmentWeights => {
-    const out: DepartmentWeights = {};
-    for (const dept of Object.keys(weights)) {
-      out[dept] = (weights[dept] || []).map((cat) => ({
-        ...cat,
-        content: (cat.content || []).map((item) => {
-          const elements = (item as any)?.ui?.elements;
-          const maxpoints = Math.max(0, Number(item?.maxpoints) || 0);
-          if (Array.isArray(elements) && isDefaultGeneratedElements(elements, maxpoints)) {
-            return { ...item, ui: { ...((item as any).ui || {}), elements: [] } };
-          }
-          return item;
-        }),
-      }));
-    }
-    return out;
-  };
-
-  /** Merge stored weights with defaults, ensuring every dept/category has content */
-  const initDepartmentWeights = (): DepartmentWeights => {
-    const stored = loadDepartmentWeightsFromStorage();
-    if (!stored) return DEFAULT_DEPARTMENT_WEIGHTS;
-    // Migrate any stored weights that have old auto-generated basicGradingSystem elements
-    const migrated = migrateStoredWeights(stored);
-    // Ensure every department and category has content; fill from defaults if missing
-    const merged: DepartmentWeights = { ...DEFAULT_DEPARTMENT_WEIGHTS };
-    for (const dept of Object.keys(DEFAULT_DEPARTMENT_WEIGHTS)) {
-      const storedDept = migrated[dept];
-      if (!storedDept || storedDept.length === 0) {
-        merged[dept] = DEFAULT_DEPARTMENT_WEIGHTS[dept];
-      } else {
-        const defaultDept = DEFAULT_DEPARTMENT_WEIGHTS[dept] ?? [];
-        merged[dept] = storedDept.map((cat, idx) => {
-          const hasContent = Array.isArray(cat.content) && cat.content.length > 0;
-          if (hasContent) return cat;
-          // Try to find matching category by label first, then by index
-          const defaultCat = defaultDept.find(d => d.label === cat.label) ?? defaultDept[idx];
-          return { ...cat, content: defaultCat?.content ?? cat.content };
-        });
-      }
-    }
-    return merged;
-  };
   /** Single source for employee/supervisor grading UI (weights, criteria content, panel definitions). Mutated only from admin: Edit weighted scores → Commit, Load standard, or per-dept Reset (not from unsaved drafts). */
-  const [departmentWeights, setDepartmentWeights] = useState<DepartmentWeights>(initDepartmentWeights);
+  const [departmentWeights, setDepartmentWeights] = useState<DepartmentWeights>(createInitialDepartmentWeightsFromStorage);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -369,7 +332,14 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
       if (e.key === DEPARTMENT_WEIGHTS_STORAGE_KEY && e.newValue != null) {
         try {
           const parsed = JSON.parse(e.newValue) as DepartmentWeights;
-          if (parsed && typeof parsed === 'object') setDepartmentWeights(parsed);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            setDepartmentWeights(
+              mergeDepartmentWeightsWithProgramDefaults(
+                migrateStoredDepartmentWeights(parsed),
+                BUNDLED_DEFAULT_DEPARTMENT_WEIGHTS
+              )
+            );
+          }
         } catch {
           // ignore
         }
@@ -406,6 +376,15 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
   }, [user]);
 
   const handleLogin = useCallback((loggedInUser: User) => {
+    const stored = loadDepartmentWeightsFromStorage();
+    if (stored) {
+      setDepartmentWeights(
+        mergeDepartmentWeightsWithProgramDefaults(
+          migrateStoredDepartmentWeights(stored),
+          BUNDLED_DEFAULT_DEPARTMENT_WEIGHTS
+        )
+      );
+    }
     setUser(loggedInUser);
     onUserChange(loggedInUser.id);
     sessionWrite(SESSION_USER_STORAGE_KEY, JSON.stringify(loggedInUser));
@@ -656,7 +635,7 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
     }
 
     setAuditBuckets(migrateLegacyTransmissionsToBuckets({ pending: initialPending, history: initialHistory, registry: INITIAL_REGISTRY }));
-    setDepartmentWeights(DEFAULT_DEPARTMENT_WEIGHTS);
+    setDepartmentWeights(BUNDLED_DEFAULT_DEPARTMENT_WEIGHTS);
   }, []);
 
   const handleClearEmployeeAudits = useCallback(() => {

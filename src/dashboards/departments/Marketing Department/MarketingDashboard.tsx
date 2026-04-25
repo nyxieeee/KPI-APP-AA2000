@@ -1330,8 +1330,6 @@ const MarketingDashboard: React.FC<Props> = ({ user, validatedStats, pendingTran
                     )}
                     {activeStep === 2 && (() => {
                       const getWeightNum = (w: string) => parseInt(w.replace('%', ''), 10) || 0;
-                      const scoreBadge = (score: number, max: number) => score === max ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600';
-                      const getWeightedScoreColor = (score: number) => score >= 85 ? 'text-emerald-600' : score >= 70 ? 'text-blue-600' : score >= 50 ? 'text-amber-600' : 'text-rose-600';
 
                       return (
                         <div className="space-y-8 animate-in slide-in-from-left-4 fade-in duration-500 pb-10">
@@ -1368,25 +1366,10 @@ const MarketingDashboard: React.FC<Props> = ({ user, validatedStats, pendingTran
                                 : (totalScore * (weightPct / 100)).toFixed(2) + '%';
 
                               const ReviewIcon = getEmployeeCategoryIcon(catCfg?.icon);
-                              const reviewRows =
-                                catCfg?.content?.length
-                                  ? catCfg.content.map((c: any, taskIdx: number) => ({ mainText: c.label, maxpoints: c.maxpoints, taskIdx }))
-                                  : (MARKETING_LOG_CHECKLIST_CONTENT[cat] || []).map((label: string, taskIdx: number) => {
-                                    const cleanLabel = label.replace(' - CRITICAL METRIC', '');
-                                    const match = cleanLabel.match(/(.*)\s*\(([\d.]+)\s*(?:points?|Yield)\)/i);
-                                    const mainText = match ? match[1].trim() : cleanLabel;
-                                    const maxpoints = match ? parseFloat(match[2]) : 0;
-                                    return { mainText, maxpoints, taskIdx };
-                                  });
-
-                              const scoreBadge = (s: number, m: number) => {
-                                const p = m > 0 ? (s / m) * 100 : 0;
-                                return p >= 90 ? 'bg-emerald-100 text-emerald-600' : p >= 70 ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600';
-                              };
 
                               return (
-                                <div key={cat} className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm space-y-6">
-                                  <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-700 pb-4">
+                                <div key={cat} className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                                  <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4">
                                       <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
                                         <ReviewIcon className="w-5 h-5 text-blue-600" />
@@ -1409,44 +1392,6 @@ const MarketingDashboard: React.FC<Props> = ({ user, validatedStats, pendingTran
                                         {weightedScoreText}
                                       </span>
                                     </div>
-                                  </div>
-
-                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {reviewRows.map((row: any) => {
-                                      const key = `task${row.taskIdx + 1}`;
-                                      const value = checklist[key];
-                                      const maxpoints = row.maxpoints;
-                                      const score =
-                                        typeof value === 'object' && value != null && (value as any).score != null
-                                          ? Number((value as any).score) || 0
-                                          : value === true
-                                            ? maxpoints
-                                            : 0;
-
-                                      return (
-                                        <div key={row.taskIdx} className="bg-slate-50 dark:bg-slate-900 p-5 rounded-lg border border-slate-100 dark:border-slate-700 flex flex-col justify-between gap-3 hover:border-blue-200 dark:hover:border-blue-700 transition-colors">
-                                          <div>
-                                            <div className="flex justify-between items-start mb-2">
-                                              <span className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-tight leading-tight">{row.mainText}</span>
-                                              <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${scoreBadge(score, maxpoints)}`}>
-                                                {score} / {maxpoints}
-                                              </span>
-                                            </div>
-
-                                            {typeof value === 'object' && value != null && (
-                                              <div className="space-y-1.5">
-                                                {(value as any).num !== undefined && (
-                                                  <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>Value:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{String((value as any).num)}</span></div>
-                                                )}
-                                                {(value as any).rate !== undefined && (
-                                                  <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>Rate:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{(value as any).rate}%</span></div>
-                                                )}
-                                              </div>
-                                            )}
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
                                   </div>
                                 </div>
                               );

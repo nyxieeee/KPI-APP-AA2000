@@ -26,7 +26,6 @@ import {
   getGradeForScore,
   getGradeColorClasses,
 } from '../utils/gradingSystem';
-import { saveDepartmentWeightsToStorage } from '../utils/departmentWeightsStorage';
 import { clearGradingEditSession } from '../utils/gradingEditSession';
 import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
 import {
@@ -3366,7 +3365,6 @@ const AdminDashboard: React.FC<Props> = ({
                           JSON.parse(JSON.stringify(merged)) as DepartmentWeights
                         );
                         onUpdateDepartmentWeights(next);
-                        saveDepartmentWeightsToStorage(next);
                         clearGradingEditSession();
                       }
                       setGradingEditDept(null);

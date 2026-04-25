@@ -1279,13 +1279,9 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
                             const weightedScoreColor =
                               totalScore >= 70 ? 'text-blue-600' : totalScore >= 50 ? 'text-amber-600' : 'text-rose-600';
                             const ReviewIcon = getEmployeeCategoryIcon(catCfg?.icon);
-                            const reviewRows =
-                              catCfg?.content?.length
-                                ? catCfg.content.map((c, taskIdx) => ({ mainText: c.label, maxpoints: c.maxpoints, taskIdx }))
-                                : [];
                             return (
-                              <div key={cat} className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm space-y-6">
-                                <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-700 pb-4">
+                              <div key={cat} className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                                <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-4">
                                     <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
                                       <ReviewIcon className="w-5 h-5 text-blue-600" />
@@ -1308,105 +1304,6 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
                                       {weightedScoreText}
                                     </span>
                                   </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                  {reviewRows.map((row) => {
-                                    const key = `task${row.taskIdx + 1}`;
-                                    const value = checklist[key];
-                                    const maxpoints = row.maxpoints;
-                                    const mainText = row.mainText;
-                                    const score =
-                                      typeof value === 'object' && value != null && (value as any).score != null
-                                        ? Number((value as any).score) || 0
-                                        : value
-                                          ? maxpoints
-                                          : 0;
-
-                                    return (
-                                      <div key={row.taskIdx} className="bg-slate-50 dark:bg-slate-900 p-5 rounded-lg border border-slate-100 dark:border-slate-700 flex flex-col justify-between gap-3 hover:border-blue-200 dark:hover:border-blue-700 transition-colors">
-                                        <div>
-                                          <div className="flex justify-between items-start mb-2">
-                                            <span className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-tight leading-tight">{mainText}</span>
-                                            <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${score === maxpoints ? 'bg-blue-100 text-blue-600' : 'bg-blue-100 text-blue-600'}`}>
-                                              {score} / {maxpoints}
-                                            </span>
-                                          </div>
-
-                                          {typeof value === 'object' && value != null && (
-                                            <div className="space-y-1.5">
-                                              {(value as any).backJobs !== undefined && (
-                                                <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>Back-jobs:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{(value as any).backJobs}</span></div>
-                                              )}
-                                              {(value as any).fixTime !== undefined && (
-                                                <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>Fix Time:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{(value as any).fixTime} hrs</span></div>
-                                              )}
-                                              {(value as any).projectsCompleted !== undefined && (
-                                                <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>Projects:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{(value as any).projectsCompleted}</span></div>
-                                              )}
-                                              {(value as any).requiresBackJob !== undefined && (
-                                                <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>Req. Back-job:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{(value as any).requiresBackJob}</span></div>
-                                              )}
-                                              {(value as any).percentage !== undefined && (
-                                                <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>Success Rate:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{(value as any).percentage}%</span></div>
-                                              )}
-                                              {(value as any).totalProjects !== undefined && (
-                                                <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>Total Projects:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{(value as any).totalProjects}</span></div>
-                                              )}
-                                              {(value as any).onTimeProjects !== undefined && (
-                                                <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>On-Time:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{(value as any).onTimeProjects}</span></div>
-                                              )}
-                                              {(value as any).csatRating !== undefined && (
-                                                <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>CSAT:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{(value as any).csatRating}</span></div>
-                                              )}
-                                              {(value as any).complaints !== undefined && (
-                                                <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>Complaints:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{(value as any).complaints}</span></div>
-                                              )}
-                                              {(value as any).severity !== undefined && (
-                                                <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>Severity:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{(value as any).severity}</span></div>
-                                              )}
-                                              {(value as any).visits !== undefined && (
-                                                <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>Visits / month:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{(value as any).visits}</span></div>
-                                              )}
-                                              {(value as any).conversionRate !== undefined && (
-                                                <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>Conversion rate:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{(value as any).conversionRate}%</span></div>
-                                              )}
-                                              {(value as any).rating !== undefined && (
-                                                <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>Rating:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{(value as any).rating}</span></div>
-                                              )}
-                                              {(value as any).num !== undefined && (
-                                                <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>Value:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{(value as any).num === '' ? '—' : String((value as any).num)}</span></div>
-                                              )}
-                                              {Array.isArray((value as any).checks) && (
-                                                <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>Checked:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{(value as any).checks.filter(Boolean).length} / {(value as any).checks.length}</span></div>
-                                              )}
-                                              {(value as any).rate !== undefined && (
-                                                <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>Rate:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{(value as any).rate}%</span></div>
-                                              )}
-                                              {(value as any).absences !== undefined && (
-                                                <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>Absences:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{(value as any).absences}</span></div>
-                                              )}
-                                              {(value as any).tardies !== undefined && (
-                                                <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>Tardies:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{(value as any).tardies}</span></div>
-                                              )}
-                                              {(value as any).violations !== undefined && (
-                                                <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>Violations:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{(value as any).violations}</span></div>
-                                              )}
-                                            </div>
-                                          )}
-                                        </div>
-
-                                        {typeof value === 'object' && value != null && (value as any).file && (
-                                          <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-600/50">
-                                            <div className="flex items-center gap-2 text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-3 py-2 rounded-xl border border-blue-100 dark:border-blue-900/50">
-                                              <FileCheck className="w-3 h-3 shrink-0" />
-                                              <span className="text-[10px] font-bold truncate">{(value as any).file.name}</span>
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
                                 </div>
                               </div>
                             );

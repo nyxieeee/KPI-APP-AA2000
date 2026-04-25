@@ -1342,8 +1342,8 @@ const SalesDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmis
                                   agg.aggregatePts >= 85 ? 'text-emerald-600' : agg.aggregatePts >= 70 ? 'text-blue-600' : 'text-amber-600';
                                 const ReviewIcon = getEmployeeCategoryIcon(catCfg?.icon);
                                 return (
-                                  <div key={cat.name} className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm space-y-6">
-                                    <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-700 pb-4">
+                                  <div key={cat.name} className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                                    <div className="flex items-center justify-between">
                                       <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
                                           <ReviewIcon className="w-5 h-5 text-blue-600" />
@@ -1360,24 +1360,6 @@ const SalesDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmis
                                         <span className={`text-lg font-black tracking-tight ${weightedScoreColor}`}>{weightedScoreText}</span>
                                       </div>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                      {catCfg.content.map((criterionItem, taskIdx) => {
-                                        const key = `task${taskIdx + 1}`;
-                                        const value = checklist[key];
-                                        const rowScore = scoreForCriterionContentItem(criterionItem, value as any);
-                                        const maxPts = Math.max(0, Number(criterionItem.maxpoints) || 0);
-                                        return (
-                                          <div key={key} className="bg-slate-50 dark:bg-slate-900 p-5 rounded-lg border border-slate-100 dark:border-slate-700 flex flex-col gap-3 hover:border-blue-200 dark:hover:border-blue-700 transition-colors">
-                                            <div className="flex justify-between items-start mb-2">
-                                              <span className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-tight leading-tight">{criterionItem.label}</span>
-                                              <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-blue-100 text-blue-600">
-                                                {rowScore} / {maxPts}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
                                   </div>
                                 );
                               }
@@ -1388,8 +1370,8 @@ const SalesDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmis
                               const weightedScore = ((rowScore * weightPct) / 100).toFixed(2) + '%';
 
                               return (
-                                <div key={cat.name} className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm space-y-6">
-                                  <div className="flex items-center justify-between border-b border-slate-50 dark:border-slate-700 pb-4">
+                                <div key={cat.name} className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
+                                  <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4">
                                       <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
                                         <ReviewIcon className="w-5 h-5 text-blue-600" />
@@ -1405,32 +1387,6 @@ const SalesDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmis
                                       <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 dark:text-slate-500 uppercase tracking-wide">Weighted Score</span>
                                       <span className={`text-lg font-black tracking-tight ${getWeightedScoreColor(rowScore)}`}>{weightedScore}</span>
                                     </div>
-                                  </div>
-
-                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {(SALES_CHECKLIST_CONTENT[cat.name] || []).map((label, taskIdx) => {
-                                      const key = `task${taskIdx + 1}`;
-                                      const val = checklist[key];
-                                      if (!val) return null;
-                                      const cleanLabel = label.replace(' - CRITICAL METRIC', '');
-                                      const match = cleanLabel.match(/(.*)\s*\(([\d.]+)\s*(?:points?|Yield)\)/i);
-                                      const mainText = match ? match[1].trim() : cleanLabel;
-                                      const maxPts = match ? parseFloat(match[2]) : 0;
-                                      const score = typeof val === 'object' && val != null && (val as any).score != null ? (val as any).score : (val === true ? maxPts : 0);
-
-                                      return (
-                                        <div key={key} className="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg border border-slate-100 dark:border-slate-700 flex flex-col justify-between">
-                                          <div className="flex justify-between items-start mb-2">
-                                            <span className="text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-tight leading-tight">{mainText}</span>
-                                            <span className="text-[10px] font-black px-2 py-1 rounded bg-blue-100 text-blue-600">{score} / {maxPts}</span>
-                                          </div>
-                                          {typeof val === 'object' && val != null && <div className="space-y-1 mt-1">
-                                            {(val as any).num !== undefined && <div className="flex justify-between text-[9px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>Value:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{String((val as any).num)}</span></div>}
-                                            {(val as any).rate !== undefined && <div className="flex justify-between text-[9px] text-slate-500 dark:text-slate-400 dark:text-slate-400"><span>Rate:</span> <span className="font-bold text-slate-900 dark:text-slate-100">{(val as any).rate}%</span></div>}
-                                          </div>}
-                                        </div>
-                                      );
-                                    })}
                                   </div>
                                 </div>
                               );
