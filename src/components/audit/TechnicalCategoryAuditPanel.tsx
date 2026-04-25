@@ -39,6 +39,40 @@ function getElementsArray(item: CategoryContentItem): any[] {
   return Array.isArray(item.ui?.elements) ? (item.ui!.elements as any[]) : [];
 }
 
+/** True when this criterion is scored with a single numeric field (no textbox/checkbox grading UI). */
+export function criterionUsesManualScoreOnly(item: CategoryContentItem): boolean {
+  const { textboxEntries, checkboxEntries, basic, cbGrading } = parseElements(item);
+  const checkboxN = checkboxEntries.length;
+  const textboxN = textboxEntries.length;
+  const hasBasicTextGrading =
+    textboxN > 0 &&
+    !!basic &&
+    (!!basic.checkpoints?.length ||
+      Boolean(basic.perTextboxCheckpoints?.some((row) => row && row.length > 0)));
+  const hasRenderable =
+    hasBasicTextGrading ||
+    (checkboxN > 0 && (cbGrading?.checkpoints?.length || (basic?.checkboxScores?.length ?? 0) > 0));
+  return !hasRenderable;
+}
+
+/** Split a category total (0…sum(caps)) into per-criterion integer scores proportional to each cap (largest remainder). */
+export function distributeAggregateAcrossCaps(total: number, caps: number[]): number[] {
+  const catMax = caps.reduce((a, b) => a + b, 0);
+  if (caps.length === 0) return [];
+  if (catMax <= 0) return caps.map(() => 0);
+  const V = Math.max(0, Math.min(catMax, total));
+  const exact = caps.map((c) => (V * c) / catMax);
+  const base = exact.map((x) => Math.floor(x));
+  let rem = V - base.reduce((s, x) => s + x, 0);
+  const order = exact.map((x, i) => ({ i, r: x - Math.floor(x) })).sort((a, b) => b.r - a.r);
+  const out = [...base];
+  for (let k = 0; rem > 0 && k < order.length; k++) {
+    out[order[k].i]++;
+    rem--;
+  }
+  return out;
+}
+
 function parseElements(item: CategoryContentItem) {
   const elements = getElementsArray(item);
   const textboxEntries = elements
@@ -369,6 +403,28 @@ const TechnicalCategoryAuditPanel: React.FC<TechnicalCategoryAuditPanelProps> = 
     [category, pmChecklist]
   );
 
+  const categoryMaxPoints = useMemo(
+    () => (category.content || []).reduce((s, it) => s + capForCriterion(it), 0),
+    [category]
+  );
+
+  const useCategoryAggregateOnly =
+    content.length > 0 && content.every((it) => criterionUsesManualScoreOnly(it));
+
+  const setCategoryAggregatePoints = (total: number) => {
+    const items = category.content || [];
+    const caps = items.map(capForCriterion);
+    const scores = distributeAggregateAcrossCaps(total, caps);
+    setFormData((prev) => {
+      const nextPm = { ...prev.pmChecklist } as Record<string, unknown>;
+      items.forEach((_, idx) => {
+        const taskKey = `task${idx + 1}`;
+        nextPm[taskKey] = { score: scores[idx] ?? 0 };
+      });
+      return { ...prev, pmChecklist: nextPm };
+    });
+  };
+
   const mergeTask = (taskKey: string, patch: Partial<CriterionTaskState>) => {
     setFormData((prev) => {
       const prevTask = (prev.pmChecklist[taskKey] as CriterionTaskState) || { score: 0 };
@@ -661,13 +717,48 @@ const TechnicalCategoryAuditPanel: React.FC<TechnicalCategoryAuditPanelProps> = 
         </div>
         <div className="min-w-0">
           <h3 className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">Audit: {category.label}</h3>
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Department grading breakdown</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+            {useCategoryAggregateOnly ? 'Category score' : 'Department grading breakdown'}
+          </p>
         </div>
       </div>
 
-      <div className={`relative z-10 isolate ${AUDIT_PANEL_CRITERIA_GRID_CLASS}`}>
-        {content.map((it, i) => renderCriterion(it, i))}
-      </div>
+      {useCategoryAggregateOnly ? (
+        <div className="space-y-4 rounded-[2rem] border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-[#0f1b2d] p-5 shadow-sm backdrop-blur md:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-[13px] font-black text-slate-900 dark:text-slate-100">Total points for this category</p>
+              <p className="mt-1 text-[11px] font-semibold leading-relaxed text-slate-500 dark:text-slate-400">
+                One field out of {categoryMaxPoints} max; totals are split across criterion caps for reporting.
+              </p>
+            </div>
+            <div className="shrink-0 text-right">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Yield</p>
+              <p className="text-[11px] font-black tabular-nums text-blue-600">
+                {formatYieldNumber(aggregatePts)} / {categoryMaxPoints}
+              </p>
+            </div>
+          </div>
+          <input
+            type="number"
+            min={0}
+            max={categoryMaxPoints}
+            value={aggregatePts !== 0 ? aggregatePts : ''}
+            placeholder="0"
+            onChange={(e) => {
+              const raw = e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0;
+              const v = Math.max(0, Math.min(categoryMaxPoints, raw));
+              setCategoryAggregatePoints(v);
+            }}
+            onFocus={(e) => e.target.select()}
+            className="w-full max-w-md rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-[#0b1222] px-4 py-3 text-center text-[14px] font-black outline-none focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
+          />
+        </div>
+      ) : (
+        <div className={`relative z-10 isolate ${AUDIT_PANEL_CRITERIA_GRID_CLASS}`}>
+          {content.map((it, i) => renderCriterion(it, i))}
+        </div>
+      )}
 
       <div className="relative z-0 flex flex-col gap-6 overflow-hidden rounded-[2.5rem] bg-slate-900 p-8 text-white shadow-2xl sm:flex-row sm:items-center sm:justify-between">
         <div className="pointer-events-none absolute right-0 top-0 h-32 w-32 rounded-full bg-blue-500/10 blur-[60px]" />
