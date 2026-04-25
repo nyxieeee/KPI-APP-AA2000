@@ -169,8 +169,12 @@ export async function readPortalLaunchFromUrl(url: string = window.location.href
       if (!key) {
         console.error('[portalSession] Encrypted launch params received but VITE_LAUNCH_AES_KEY is not set (and not in dev). Cannot decrypt.');
       } else {
-        if (encSession) sessionToken = await decryptUtf8(encSession, key);
-        if (encAccount) accountId = await decryptUtf8(encAccount, key);
+        const [decodedSession, decodedAccount] = await Promise.all([
+          encSession ? decryptUtf8(encSession, key) : Promise.resolve<string | null>(null),
+          encAccount ? decryptUtf8(encAccount, key) : Promise.resolve<string | null>(null),
+        ]);
+        sessionToken = decodedSession;
+        accountId = decodedAccount;
         if (encSession && !sessionToken) {
           console.error('[portalSession] AES-GCM decryption of __launch failed (wrong key or tampered token).');
         }

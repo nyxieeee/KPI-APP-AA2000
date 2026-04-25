@@ -64,12 +64,17 @@ const sessionRemove = (key: string) => {
 
 function DashboardGate({
   user,
+  sessionHydrating,
   dashboardLayout,
 }: {
   user: User | null;
+  sessionHydrating: boolean;
   dashboardLayout: React.ReactNode;
 }) {
   const { department: paramDept } = useParams<{ department: string }>();
+  if (sessionHydrating) {
+    return <SessionHydratingScreen />;
+  }
   if (!user) {
     return <NoPortalSession />;
   }
@@ -82,6 +87,17 @@ function DashboardGate({
     return <Navigate to={`/dashboard/${slug}`} replace />;
   }
   return <>{dashboardLayout}</>;
+}
+
+function SessionHydratingScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-900">
+      <div className="w-14 h-14 rounded-full border-4 border-slate-200 dark:border-slate-700 border-t-blue-600 animate-spin" aria-label="Loading" />
+      <div className="sr-only" aria-live="polite">
+        Loading
+      </div>
+    </div>
+  );
 }
 
 /** Shown when the KPI app is opened without a portal session in the URL. */
@@ -241,6 +257,7 @@ interface AppInnerProps {
 const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
   const { isDark } = useDarkMode();
   const [user, setUser] = useState<User | null>(null);
+  const [sessionHydrating, setSessionHydrating] = useState(true);
   const [auditBuckets, setAuditBuckets] = useState<AuditBuckets>(() => {
     // One-time clear: wipe all pre-seeded/stored submission history on first boot after this version
     const CLEARED_FLAG = 'aa2000_kpi_history_cleared_v4';
@@ -416,6 +433,10 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
   // sessionStorage clears on tab/browser close — credentials never touch localStorage.
   useEffect(() => {
     let cancelled = false;
+    const finishHydration = () => {
+      if (cancelled) return;
+      setSessionHydrating(false);
+    };
 
     const adoptUser = (next: User, source: 'portal' | 'restore') => {
       const stored = loadDepartmentWeightsFromStorage();
@@ -475,6 +496,7 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
         if (!hasPortalApiConfigured()) {
           console.error('[App] Portal handed off a session token but VITE_API_BASE_URL is not set — cannot resolve user.');
           restoreFromSession();
+          finishHydration();
           return;
         }
         try {
@@ -484,6 +506,7 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
             const next = mapPortalSessionToUser(data);
             if (next) {
               adoptUser(next, 'portal');
+              finishHydration();
               return;
             }
             console.error('[App] Portal session resolved but could not map to a KPI user.');
@@ -495,6 +518,7 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
       }
 
       restoreFromSession();
+      finishHydration();
     })();
 
     return () => {
@@ -835,7 +859,9 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
       <Route
         path="/dashboard"
         element={
-          user ? (
+          sessionHydrating ? (
+            <SessionHydratingScreen />
+          ) : user ? (
             <Navigate to={loggedInHomePath} replace />
           ) : (
             <NoPortalSession />
@@ -844,12 +870,14 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
       />
       <Route
         path="/dashboard/:department"
-        element={<DashboardGate user={user} dashboardLayout={dashboardLayout} />}
+        element={<DashboardGate user={user} sessionHydrating={sessionHydrating} dashboardLayout={dashboardLayout} />}
       />
       <Route
         path="/"
         element={
-          user ? (
+          sessionHydrating ? (
+            <SessionHydratingScreen />
+          ) : user ? (
             <Navigate to={loggedInHomePath} replace />
           ) : (
             <NoPortalSession />

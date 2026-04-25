@@ -238,31 +238,38 @@ const AdminDashboard: React.FC<Props> = ({
     return String(raw || '').trim().replace(/\/+$/, '');
   };
 
+  const fetchBackendRoleNames = useCallback(async (baseUrl: string): Promise<string[]> => {
+    const candidates = [
+      `${baseUrl}/service/kpi/post/get/roles`,
+      `${baseUrl}/roles/get/roles`,
+    ];
+    for (const url of candidates) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) continue;
+        const data = await res.json();
+        const names = Array.isArray(data)
+          ? data
+              .map((x: any) => String(x?.r_name ?? '').trim())
+              .filter((name: string) => name.length > 0)
+          : [];
+        if (names.length > 0) return names;
+      } catch {
+        // try next candidate
+      }
+    }
+    return [];
+  }, []);
+
   useEffect(() => {
     const baseUrl = resolveBackendApiBaseUrl();
     if (!baseUrl) return;
 
     let cancelled = false;
     const loadRoles = async () => {
-      const candidates = [
-        `${baseUrl}/roles/get/roles`,
-        `${baseUrl}/service/kpi/post/get/roles`,
-      ];
-      for (const url of candidates) {
-        try {
-          const res = await fetch(url);
-          if (!res.ok) continue;
-          const data = await res.json();
-          const names = Array.isArray(data)
-            ? data
-                .map((x: any) => String(x?.r_name ?? '').trim())
-                .filter((name: string) => name.length > 0)
-            : [];
-          if (!cancelled) setBackendRoles(names);
-          return;
-        } catch {
-          // try next candidate
-        }
+      const names = await fetchBackendRoleNames(baseUrl);
+      if (!cancelled && names.length > 0) {
+        setBackendRoles(names);
       }
       // non-blocking; save endpoint has fallback for r_ID
     };
@@ -271,7 +278,7 @@ const AdminDashboard: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [fetchBackendRoleNames]);
 
   const syncCriteriaAdminSnapshot = async (dept: string, categories: CategoryWeightItem[]): Promise<boolean> => {
     const baseUrl = resolveBackendApiBaseUrl();
@@ -282,6 +289,12 @@ const AdminDashboard: React.FC<Props> = ({
       );
       return false;
     }
+
+    const latestRoles = await fetchBackendRoleNames(baseUrl);
+    if (latestRoles.length > 0) {
+      setBackendRoles(latestRoles);
+    }
+    const effectiveRoles = latestRoles.length > 0 ? latestRoles : backendRoles;
 
     const rates = categories.slice(0, 6).map((c) => Math.max(0, Number(c.weightPct) || 0));
     const departmentRoleFallbackMap: Record<string, string> = {
@@ -294,10 +307,10 @@ const AdminDashboard: React.FC<Props> = ({
     const preferredRoleName =
       departmentRoleFallbackMap[String(dept || '').trim().toLowerCase()] ?? String(dept || '').trim();
     const matchedRoleName =
-      backendRoles.find((name) => name.toLowerCase() === preferredRoleName.toLowerCase()) ??
-      backendRoles.find((name) => name.toLowerCase() === String(dept).toLowerCase()) ??
-      backendRoles.find((name) => name.toLowerCase() === String(user.department || '').toLowerCase()) ??
-      backendRoles.find((name) => name.toLowerCase() === String(user.role).toLowerCase());
+      effectiveRoles.find((name) => name.toLowerCase() === preferredRoleName.toLowerCase()) ??
+      effectiveRoles.find((name) => name.toLowerCase() === String(dept).toLowerCase()) ??
+      effectiveRoles.find((name) => name.toLowerCase() === String(user.department || '').toLowerCase()) ??
+      effectiveRoles.find((name) => name.toLowerCase() === String(user.role).toLowerCase());
 
     const payload = {
       c_ID: dept,
