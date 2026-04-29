@@ -11,7 +11,15 @@ export default defineConfig(({ mode }) => {
         port: 3000,
         host: '0.0.0.0',
         allowedHosts: true,
-        cors: true,
+        cors: {
+          origin: true,
+          credentials: true,
+        },
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Session-Id',
+        },
       },
       plugins: [react()],
       define: {

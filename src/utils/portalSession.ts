@@ -108,7 +108,9 @@ function bytesToB64url(buf: ArrayBuffer | Uint8Array): string {
 
 function b64urlToBytes(s: string): Uint8Array | null {
   try {
-    const b64 = s.replace(/-/g, '+').replace(/_/g, '/');
+    const cleaned = String(s ?? '').trim().replace(/\s+/g, '');
+    if (!cleaned) return null;
+    const b64 = cleaned.replace(/-/g, '+').replace(/_/g, '/');
     const pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
     const bin = atob(b64 + pad);
     const out = new Uint8Array(bin.length);
@@ -120,20 +122,31 @@ function b64urlToBytes(s: string): Uint8Array | null {
 }
 
 async function decryptUtf8(token: string, key: CryptoKey): Promise<string | null> {
-  const raw = b64urlToBytes(token);
-  if (!raw || raw.length < AES_IV_LEN + 16) return null;
-  const iv = raw.slice(0, AES_IV_LEN);
-  const data = raw.slice(AES_IV_LEN);
-  try {
-    const plain = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: iv as BufferSource },
-      key,
-      data as BufferSource
-    );
-    return new TextDecoder().decode(plain);
-  } catch {
-    return null;
+  const tokenCandidates = Array.from(new Set([
+    String(token ?? '').trim(),
+    (() => {
+      try { return decodeURIComponent(String(token ?? '').trim()); } catch { return ''; }
+    })(),
+    String(token ?? '').trim().replace(/ /g, '+'),
+  ].filter(Boolean)));
+
+  for (const candidate of tokenCandidates) {
+    const raw = b64urlToBytes(candidate);
+    if (!raw || raw.length < AES_IV_LEN + 16) continue;
+    const iv = raw.slice(0, AES_IV_LEN);
+    const data = raw.slice(AES_IV_LEN);
+    try {
+      const plain = await crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: iv as BufferSource },
+        key,
+        data as BufferSource
+      );
+      return new TextDecoder().decode(plain);
+    } catch {
+      // try next compatible token variant
+    }
   }
+  return null;
 }
 
 /** Symmetric helper — exposed so dev tooling can produce matching launch params. */
@@ -242,7 +255,14 @@ export function clearPortalLaunchFromUrl(): void {
 
 function parseHashParams(hash: string): URLSearchParams {
   if (!hash || hash === '#') return new URLSearchParams();
-  return new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash);
+  const raw = hash.startsWith('#') ? hash.slice(1) : hash;
+  // Support hash-router shapes like:
+  // - "#__launch=...&__actor=..."
+  // - "#/kpi?__launch=...&__actor=..."
+  // - "#/some/path?s_name=...&acc_ID=..."
+  const queryIndex = raw.indexOf('?');
+  const candidate = queryIndex >= 0 ? raw.slice(queryIndex + 1) : raw;
+  return new URLSearchParams(candidate);
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
