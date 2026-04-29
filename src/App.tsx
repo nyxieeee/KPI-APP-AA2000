@@ -46,6 +46,8 @@ const VALID_DEPARTMENTS = ['technical', 'sales', 'marketing', 'accounting', 'adm
 const deptSlug = (d: string) => (d || 'technical').toLowerCase();
 const genId = (len = 8) => Math.random().toString(36).substr(2, len).toUpperCase();
 const SESSION_USER_STORAGE_KEY = 'aa2000-session-user';
+const PORTAL_LAUNCH_TOKEN_STORAGE_KEY = 'aa2000-portal-launch-token';
+const PORTAL_LAUNCH_ACCOUNT_STORAGE_KEY = 'aa2000-portal-launch-account-id';
 const DEV_FALLBACK_ROLE_FINANCIALS: Record<UserRole, { base: number; target: number }> = {
   [UserRole.EMPLOYEE]: { base: 62000, target: 12000 },
   [UserRole.SUPERVISOR]: { base: 88000, target: 18000 },
@@ -530,6 +532,13 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
     (async () => {
       const launch = await readPortalLaunchFromUrl();
       if (cancelled) return;
+      const cachedLaunchToken = sessionRead(PORTAL_LAUNCH_TOKEN_STORAGE_KEY);
+      const cachedLaunchAccountId = sessionRead(PORTAL_LAUNCH_ACCOUNT_STORAGE_KEY);
+      const launchSessionToken = launch.sessionToken || cachedLaunchToken;
+      const launchAccountId = launch.accountId || cachedLaunchAccountId;
+
+      if (launch.sessionToken) sessionWrite(PORTAL_LAUNCH_TOKEN_STORAGE_KEY, launch.sessionToken);
+      if (launch.accountId) sessionWrite(PORTAL_LAUNCH_ACCOUNT_STORAGE_KEY, launch.accountId);
 
       // Strip launch params from URL immediately so they don't linger in history,
       // even if the API call below fails — the user can reload from the portal.
@@ -537,7 +546,7 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
         clearPortalLaunchFromUrl();
       }
 
-      if (launch.sessionToken) {
+      if (launchSessionToken) {
         if (!hasPortalApiConfigured()) {
           console.error('[App] Portal handed off a session token but VITE_API_BASE_URL is not set — cannot resolve user.');
           restoreFromSession();
@@ -545,12 +554,14 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
           return;
         }
         try {
-          const data = await fetchPortalSessionByToken(launch.sessionToken);
+          const data = await fetchPortalSessionByToken(launchSessionToken);
           if (cancelled) return;
           if (data) {
             const next = mapPortalSessionToUser(data);
             if (next) {
               adoptUser(next, 'portal');
+              sessionWrite(PORTAL_LAUNCH_TOKEN_STORAGE_KEY, launchSessionToken);
+              if (launchAccountId) sessionWrite(PORTAL_LAUNCH_ACCOUNT_STORAGE_KEY, String(launchAccountId));
               finishHydration();
               return;
             }
@@ -584,6 +595,8 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
     setUser(null);
     onUserChange(null);
     sessionRemove(SESSION_USER_STORAGE_KEY);
+    sessionRemove(PORTAL_LAUNCH_TOKEN_STORAGE_KEY);
+    sessionRemove(PORTAL_LAUNCH_ACCOUNT_STORAGE_KEY);
     navigate('/');
   }, [onUserChange, addAuditEntry, navigate]);
 
