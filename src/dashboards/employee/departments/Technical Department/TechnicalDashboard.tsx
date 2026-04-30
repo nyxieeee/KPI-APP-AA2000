@@ -1,44 +1,44 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { User, Transmission, SystemStats, Announcement, DepartmentWeights, CategoryWeightItem, SystemNotification } from '../../../types';
+import { User, Transmission, SystemStats, Announcement, DepartmentWeights, CategoryWeightItem, SystemNotification } from '../../../../types';
 import TechnicalCategoryAuditPanel, {
   buildDefaultPmChecklistForCategory,
   computeCategoryAggregateMetrics,
   scoreForCriterionContentItem,
-} from '../../../components/audit/TechnicalCategoryAuditPanel';
-import { getEmployeeCategoryIcon } from '../../../utils/employeeCategoryIcons';
-import { LedgerRegistryPanel } from '../../../components/modals/LedgerRegistryModal';
-import { EMPLOYEE_WORKSPACE_ID } from '../../../utils/employeeWorkspaceScroll';
-import { DirectDirectiveModal } from '../../../components/modals/DirectDirectiveModal';
-import AttachmentLivePreviewPanel from '../../../components/panels/AttachmentLivePreviewPanel';
-import { downloadLogDetailPdf, getLogDetailPdfFilename, type CategoryScoreForPdf } from '../../../utils/logDetailToPdf';
-import { getAppLogoDataUrl } from '../../../utils/pdfCommon';
-import { getITWeightedKpiSum } from '../../../utils/technicalWeightedKpi';
-import { computeGradingConfigSignature, isPendingGradingConfigExpired } from '../../../utils/gradingConfigSignature';
-import { getScoreSuggestion } from '../../../utils/scoreSuggestion';
-import { downloadPerformanceScorecardPdf, type QuarterPerformanceForPdf } from '../../../utils/performanceScorecardToPdf';
-import { computeQuarterlyStats, getCurrentQuarter, type Quarter, type PerformanceCategory } from '../../../utils/performanceMatrix';
-import { getSubmissionStatusLabel, getSubmissionStatusSubLabel } from '../../../utils/submissionStatus';
+} from '../../../../components/audit/TechnicalCategoryAuditPanel';
+import { getEmployeeCategoryIcon } from '../../../../utils/employeeCategoryIcons';
+import { LedgerRegistryPanel } from '../../../../components/modals/LedgerRegistryModal';
+import { EMPLOYEE_WORKSPACE_ID } from '../../../../utils/employeeWorkspaceScroll';
+import { DirectDirectiveModal } from '../../../../components/modals/DirectDirectiveModal';
+import AttachmentLivePreviewPanel from '../../../../components/panels/AttachmentLivePreviewPanel';
+import { downloadLogDetailPdf, getLogDetailPdfFilename, type CategoryScoreForPdf } from '../../../../utils/logDetailToPdf';
+import { getAppLogoDataUrl } from '../../../../utils/pdfCommon';
+import { getTechnicalWeightedKpiSum } from '../../../../utils/technicalWeightedKpi';
+import { computeGradingConfigSignature, isPendingGradingConfigExpired } from '../../../../utils/gradingConfigSignature';
+import { getScoreSuggestion } from '../../../../utils/scoreSuggestion';
+import { downloadPerformanceScorecardPdf, type QuarterPerformanceForPdf } from '../../../../utils/performanceScorecardToPdf';
+import { computeQuarterlyStats, getCurrentQuarter, type Quarter, type PerformanceCategory } from '../../../../utils/performanceMatrix';
+import { getSubmissionStatusLabel, getSubmissionStatusSubLabel } from '../../../../utils/submissionStatus';
 import {
   createStoredAttachmentFromFile,
   hydrateAttachmentData,
   attachmentsMatch,
   type HydratableAttachment,
-} from '../../../utils/attachmentStore';
-import { PerformanceMatrix as PerformanceMatrixCard } from '../../../components/panels/PerformanceMatrix';
-import { TechnicalLogDetailAuditReview } from '../../../components/panels/TechnicalLogDetailAuditReview';
-import { PdfToast, type PdfToastState } from '../../../components/toasts/PdfToast';
-import DashboardNotificationBanner from '../../../components/workspace/DashboardNotificationBanner';
-import { getGradeForScore, getGradeColorClasses } from '../../../utils/gradingSystem';
-import { RoleSidenav } from '../../../components/navigation/RoleSidenav';
-import { APP_NAV_RAIL_PL_COLLAPSED, APP_NAV_RAIL_PL_EXPANDED } from '../../../constants/navbarLayout';
-import { useMobileSidenav } from '../../../contexts/MobileSidenavContext';
-import { useRoleSidenavRail } from '../../../contexts/RoleSidenavRailContext';
-import { useLockBodyScroll } from '../../../hooks/useLockBodyScroll';
+} from '../../../../utils/attachmentStore';
+import { PerformanceMatrix as PerformanceMatrixCard } from '../../../../components/panels/PerformanceMatrix';
+import { TechnicalLogDetailAuditReview } from '../../../../components/panels/TechnicalLogDetailAuditReview';
+import { PdfToast, type PdfToastState } from '../../../../components/toasts/PdfToast';
+import DashboardNotificationBanner from '../../../../components/workspace/DashboardNotificationBanner';
+import { getGradeForScore, getGradeColorClasses } from '../../../../utils/gradingSystem';
+import { RoleSidenav } from '../../../../components/navigation/RoleSidenav';
+import { APP_NAV_RAIL_PL_COLLAPSED, APP_NAV_RAIL_PL_EXPANDED } from '../../../../constants/navbarLayout';
+import { useMobileSidenav } from '../../../../contexts/MobileSidenavContext';
+import { useRoleSidenavRail } from '../../../../contexts/RoleSidenavRailContext';
+import { useLockBodyScroll } from '../../../../hooks/useLockBodyScroll';
 import {
   startAuditPanelHold,
   stopAuditPanelHold,
   subscribeAuditPanelHoldGlobalStop,
-} from '../../../utils/auditPanelHold';
+} from '../../../../utils/auditPanelHold';
 import {
   Activity, CheckCircle2, Clock, Briefcase, MapPin,
   FileCheck, ChevronRight, Info, ChevronLeft, ShieldCheck, Zap,
@@ -64,8 +64,55 @@ interface Props {
   onDeleteNotification?: (id: string) => void;
 }
 
+const DEFAULT_CLASSIFICATIONS = [
+  { name: 'Project Execution Quality', description: '50% Quality Assurance', weight: '50%', tooltip: 'Primary Performance Factor: 50% Weight', icon: Wrench },
+  { name: 'Client Satisfaction & Turnover', description: '25% Customer Experience', weight: '25%', tooltip: 'Client Retention Metric: 25% Weight', icon: Handshake },
+  { name: 'Team Leadership & Accountability', description: '15% Management', weight: '15%', tooltip: 'Leadership Metric: 15% Weight', icon: Users2 },
+  { name: 'Attendance & Discipline', description: '5% Reliability', weight: '5%', tooltip: 'Professionalism Standard: 5% Weight', icon: ShieldCheck },
+  { name: 'Additional Responsibilities', description: '3% Extra assignments', weight: '3%', tooltip: 'Organizational contribution: 3% Weight', icon: TrendingUp },
+  { name: 'Administrative Excellence', description: '2% Process compliance', weight: '2%', tooltip: 'Admin compliance: 2% Weight', icon: FileStack }
+];
+const CHECKLIST_CONTENT: Record<string, string[]> = {
+  'Project Execution Quality': [
+    'Zero Back-Job Rate (25 Yield)',
+    'First-Time Fix Quality (12 Yield)',
+    'Technical Compliance & Standards (7 Yield)',
+    'Schedule Adherence (6 Yield)'
+  ],
+  'Client Satisfaction & Turnover': [
+    'Client Satisfaction Score - CSAT (15 Yield)',
+    'Smooth Turnover Rate (5 Yield)',
+    'Zero Client Complaints/Escalations (5 Yield)'
+  ],
+  'Team Leadership & Accountability': [
+    'Team Performance Under Supervision (7 Yield)',
+    'Safety Record - Zero Incidents (4 Yield) - CRITICAL',
+    'Accountability & Ownership (4 Yield)'
+  ],
+  'Additional Responsibilities': [
+    'Extra assignments, coverage, and ad-hoc support (3 Yield)'
+  ],
+  'Administrative Excellence': [
+    'Report Submission Timeliness (1 Yield)',
+    'Report Accuracy (1 Yield)'
+  ],
+  'Attendance & Discipline': [
+    'Absence (3 Yield)',
+    'Punctuality (1 Yield)',
+    'Unpreparedness (1 Yield)'
+  ]
+};
 
-const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissions, transmissionHistory, announcements, onTransmit, departmentWeights, onEditSubmission, onClearMyLogs, notifications = [], onDeleteNotification }) => {
+const DEFAULT_TECHNICAL_CATEGORIES = [
+  { name: 'Project Execution Quality', label: 'PEQ', weightPct: 50, maxpoints: 100, color: 'bg-[#4CAF50]', textColor: 'text-[#4CAF50]' },
+  { name: 'Client Satisfaction & Turnover', label: 'CST', weightPct: 25, maxpoints: 100, color: 'bg-[#3F51B5]', textColor: 'text-[#3F51B5]' },
+  { name: 'Team Leadership & Accountability', label: 'TLA', weightPct: 15, maxpoints: 100, color: 'bg-[#FF9800]', textColor: 'text-[#FF9800]' },
+  { name: 'Attendance & Discipline', label: 'ATD', weightPct: 5, maxpoints: 100, color: 'bg-[#F44336]', textColor: 'text-[#F44336]' },
+  { name: 'Additional Responsibilities', label: 'ADR', weightPct: 3, maxpoints: 100, color: 'bg-[#9C27B0]', textColor: 'text-[#9C27B0]' },
+  { name: 'Administrative Excellence', label: 'AEX', weightPct: 2, maxpoints: 100, color: 'bg-[#757575]', textColor: 'text-[#757575]' }
+];
+
+const TechnicalDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissions, transmissionHistory, announcements, onTransmit, departmentWeights, onEditSubmission, onClearMyLogs, notifications = [], onDeleteNotification }) => {
   const [activeStep, setActiveStep] = useState(1);
   const { railOpen } = useRoleSidenavRail();
   const { setConfig: setMobileNavConfig } = useMobileSidenav();
@@ -282,7 +329,7 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
   const [formData, setFormData] = useState({
     jobId: '',
     clientSite: '',
-    jobType: 'System Uptime & Reliability',
+    jobType: 'Project Execution Quality',
     startTime: '',
     endTime: '',
     systemStatus: 'Operational',
@@ -293,7 +340,7 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
   });
 
   useEffect(() => {
-    const list = departmentWeights?.IT;
+    const list = departmentWeights?.Technical;
     if (!list?.length) return;
     setFormData((prev) => {
       if (list.some((c) => c.label === prev.jobType)) return prev;
@@ -311,7 +358,7 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
       }));
       return;
     }
-    const cat = departmentWeights?.IT?.find((c) => c.label === formData.jobType);
+    const cat = departmentWeights?.Technical?.find((c) => c.label === formData.jobType);
     if (cat?.content?.length) {
       setFormData(prev => ({
         ...prev,
@@ -535,12 +582,12 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
       attachments: formData.attachments,
       startTime: formData.startTime,
       endTime: formData.endTime,
-      pmChecklist: { ...formData.pmChecklist },
-      allSalesData: categoryInputsRef.current as any,
+      pmChecklist: { ...formData.pmChecklist }, // Stores last checklist, but all data is in allSalesData/categoryInputs
+      allSalesData: categoryInputsRef.current as any, // Snapshot at broadcast time
       ratings: {
-        performance: 0, proficiency: 0, professionalism: 0, finalScore: 0, incentivePct: 0
+        ...suggestedGrades, finalScore: 0, incentivePct: 0
       },
-      gradingConfigSignature: computeGradingConfigSignature('IT', departmentWeights),
+      gradingConfigSignature: computeGradingConfigSignature('Technical', departmentWeights),
     };
 
     setTimeout(() => {
@@ -553,7 +600,7 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
       setDraftRevision(v => v + 1);
       setPreviewFile(null);
       setFormData({
-        jobId: '', clientSite: '', jobType: 'System Uptime & Reliability', startTime: '', endTime: '',
+        jobId: '', clientSite: '', jobType: 'Project Execution Quality', startTime: '', endTime: '',
         systemStatus: 'Operational', projectReport: '', attachments: [],
         pmChecklist: { task1: false, task2: false, task3: false, task4: false, task5: false, task6: false } as Record<string, unknown>,
         additionalRespValue: 0,
@@ -569,6 +616,20 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
   }, [pendingTransmissions, transmissionHistory, user.id]);
 
   // Project Execution Quality: KPI1_Score = BackJob_Points + FirstTimeFix_Points + Compliance_Points + Schedule_Points; Weighted_Score = KPI1_Score * weight. Zero back-jobs = 50 pts.
+  const getProjectExecutionQualityScore = (checklist: any): number => {
+    if (!checklist) return 0;
+    const zeroBackJobLabel = CHECKLIST_CONTENT['Project Execution Quality']?.[0];
+    let BackJob_Points = (typeof checklist.task1 === 'object' && checklist.task1?.score != null) ? Number(checklist.task1.score) : 0;
+    const hasTask1Score = typeof checklist.task1 === 'object' && checklist.task1?.score != null;
+    if (!hasTask1Score && zeroBackJobLabel && typeof checklist[zeroBackJobLabel] === 'object' && checklist[zeroBackJobLabel]?.score != null) {
+      BackJob_Points = Number(checklist[zeroBackJobLabel].score);
+    }
+    const FirstTimeFix_Points = (typeof checklist.task2 === 'object' && checklist.task2?.score != null) ? Number(checklist.task2.score) : 0;
+    const Compliance_Points = (typeof checklist.task3 === 'object' && checklist.task3?.score != null) ? Number(checklist.task3.score) : 0;
+    const Schedule_Points = (typeof checklist.task4 === 'object' && checklist.task4?.score != null) ? Number(checklist.task4.score) : 0;
+    return BackJob_Points + FirstTimeFix_Points + Compliance_Points + Schedule_Points;
+  };
+
   const sumChecklistTaskScores = (checklist: any): number => {
     if (!checklist || typeof checklist !== 'object') return 0;
     return Object.values(checklist).reduce<number>((sum: number, task: any) => {
@@ -579,24 +640,44 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
     }, 0);
   };
 
+  const getReviewTotalScoreLegacy = (category: string, checklist: any): number => {
+    if (!checklist) return 0;
+    if (departmentWeights?.Technical?.length) {
+      return sumChecklistTaskScores(checklist);
+    }
+    if (category === 'Project Execution Quality') return getProjectExecutionQualityScore(checklist);
+    const labels = CHECKLIST_CONTENT[category] || [];
+    let total = 0;
+    for (let i = 0; i < labels.length; i++) {
+      const key = `task${i + 1}`;
+      const item = checklist[key];
+      const maxpoints = (() => {
+        const m = labels[i]?.match(/\(([\d.]+)\s*(?:points?|Yield)\)/i);
+        return m ? parseInt(m[1], 10) : 0;
+      })();
+      if (typeof item === 'object' && item != null && (item as any).score != null) total += Number((item as any).score) || 0;
+      else if (item === true) total += maxpoints;
+    }
+    return total;
+  };
 
   const categoriesFromProgram = useMemo(() => {
-    if (departmentWeights?.IT?.length) {
-      return departmentWeights.IT.map((c, i) => ({
+    if (departmentWeights?.Technical?.length) {
+      return departmentWeights.Technical.map((c, i) => ({
         name: c.label,
-        label: c.label.slice(0, 3).toUpperCase(),
+        label: DEFAULT_TECHNICAL_CATEGORIES[i]?.label ?? c.label.slice(0, 3),
         weightPct: c.weightPct,
         maxpoints: 100,
-        color: 'bg-[#4CAF50]',
-        textColor: 'text-[#4CAF50]'
+        color: DEFAULT_TECHNICAL_CATEGORIES[i]?.color ?? 'bg-[#4CAF50]',
+        textColor: DEFAULT_TECHNICAL_CATEGORIES[i]?.textColor ?? 'text-[#4CAF50]'
       }));
     }
-    return [];
+    return DEFAULT_TECHNICAL_CATEGORIES;
   }, [departmentWeights]);
 
   const CLASSIFICATIONS = useMemo(() => {
-    if (departmentWeights?.IT?.length) {
-      return departmentWeights.IT.map((c) => ({
+    if (departmentWeights?.Technical?.length) {
+      return departmentWeights.Technical.map((c) => ({
         name: c.label,
         description: `${c.weightPct}% Weight`,
         weight: `${c.weightPct}%`,
@@ -604,11 +685,11 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
         icon: getEmployeeCategoryIcon(c.icon),
       }));
     }
-    return [];
+    return DEFAULT_CLASSIFICATIONS;
   }, [departmentWeights]);
 
   const selectedCategoryConfig = useMemo((): CategoryWeightItem | undefined => {
-    const tech = departmentWeights?.IT;
+    const tech = departmentWeights?.Technical;
     if (!tech?.length) return undefined;
     return tech.find((c) => c.label === formData.jobType) ?? tech[0];
   }, [departmentWeights, formData.jobType]);
@@ -624,7 +705,7 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
       }
       return checklist;
     };
-    const tech = departmentWeights?.IT;
+    const tech = departmentWeights?.Technical;
     if (tech?.length) {
       const out: Record<string, { checklist: Record<string, unknown>; status: string }> = {};
       for (const cat of tech) {
@@ -645,11 +726,11 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
     return out;
   }, [draftRevision, activeStep, formData.jobType, pmForVerifyMerge, departmentWeights]);
 
-  /** Log detail modal + PDF: scores from `allSalesData` + admin `departmentWeights.IT` content (same as Core audit). */
+  /** Log detail modal + PDF: scores from `allSalesData` + admin `departmentWeights.Technical` content (same as Core audit). */
   const buildTechnicalLogPdfCategoryScores = useCallback(
     (log: Transmission): { categoryScores: CategoryScoreForPdf[]; weightedSumApprox: number } => {
       const allData = log.allSalesData || {};
-      const tech = departmentWeights?.IT;
+      const tech = departmentWeights?.Technical;
       const categoryOrder = tech?.length ? tech.map((c) => c.label) : Object.keys(allData);
       const categoryScores: CategoryScoreForPdf[] = [];
 
@@ -668,32 +749,65 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
             name: category,
             score: m.aggregatePts,
             maxScore: m.categorymaxpoints || undefined,
-            weightPct: catCfg.weightPct, // Already a percentage (e.g. 35 means 35%)
+            weightPct: catCfg.weightPct,
+            panelItems,
+          });
+        } else {
+          const labels = CHECKLIST_CONTENT[category] || [];
+          let totalScore = 0;
+          const panelItems: { name: string; score: number }[] = [];
+          labels.forEach((label, taskIdx) => {
+            const key = `task${taskIdx + 1}`;
+            const item = checklist[key];
+            const maxpoints = label
+              ? (() => {
+                const mm = label.match(/\(([\d.]+)\s*(?:points?|Yield)\)/i);
+                return mm ? parseInt(mm[1], 10) : 0;
+              })()
+              : 0;
+            let pts = 0;
+            if (typeof item === 'object' && item != null && (item as Record<string, unknown>).score !== undefined) {
+              pts = Number((item as Record<string, unknown>).score) || 0;
+            } else if (item === true) pts = maxpoints;
+            totalScore += pts;
+            const panelName = label
+              .replace(/\s*\([\d.]+\s*(?:points?|Yield)\)\s*$/i, '')
+              .replace(/\s*-\s*CRITICAL\s*$/i, '')
+              .trim();
+            panelItems.push({ name: panelName, score: pts });
+          });
+          const weightPct = parseInt(CLASSIFICATIONS.find((c) => c.name === category)?.weight || '0', 10) || 0;
+          const maxCat = labels.reduce((m, l) => {
+            const x = l.match(/\(([\d.]+)\s*(?:points?|Yield)\)/i);
+            return m + (x ? parseInt(x[1], 10) : 0);
+          }, 0);
+          categoryScores.push({
+            name: category,
+            score: totalScore,
+            maxScore: maxCat || undefined,
+            weightPct,
             panelItems,
           });
         }
       }
-      const weightedSumApprox = getITWeightedKpiSum(log, departmentWeights);
+      const weightedSumApprox = getTechnicalWeightedKpiSum(log, departmentWeights, CHECKLIST_CONTENT, CLASSIFICATIONS);
       return { categoryScores, weightedSumApprox };
     },
-    [departmentWeights]
+    [departmentWeights, CLASSIFICATIONS]
   );
 
-  const getReviewTotalScoreLegacy = (category: string, checklist: any): number => {
-    if (!checklist) return 0;
-    return sumChecklistTaskScores(checklist);
-  };
-
+  /** Same weighted KPI as Verify / Log Detail / PDF: admin criteria → Σ weightedImpactPct. */
   const getWeightedKpiScore = (sub: Transmission): number => {
     if (sub.ratings?.finalScore != null && sub.status === 'validated') return sub.ratings.finalScore;
-    return Math.round(getITWeightedKpiSum(sub, departmentWeights));
+    return Math.round(getTechnicalWeightedKpiSum(sub, departmentWeights, CHECKLIST_CONTENT, CLASSIFICATIONS));
   };
 
   const currentTotalWeightedScore = useMemo(() => {
+    // Compute from current draft snapshot (what will be broadcast)
     const mock = { allSalesData: categoryInputsRef.current, status: 'pending', ratings: {} } as any;
     const score = getWeightedKpiScore(mock);
     return Number.isFinite(score) ? score : 0;
-  }, [draftRevision, formData.jobType, departmentWeights]);
+  }, [draftRevision, formData.jobType, departmentWeights, CLASSIFICATIONS]);
 
   const hasUserPending = useMemo(() => {
     return pendingTransmissions.some(t => t.userId === user.id);
@@ -709,15 +823,20 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
   const getQuarterPerformanceForPdf = useMemo(() => {
     const categories = categoriesFromProgram;
 
-    const getCategoryScore = (allData: any, categoryName: string) => {
+    const getCategoryScorePercentage = (allData: any, categoryName: string) => {
+      const catCfg = departmentWeights?.Technical?.find((c) => c.label === categoryName);
       const checklist = allData?.[categoryName]?.checklist;
       if (!checklist) return 0;
-      const catCfg = departmentWeights?.IT?.find((c) => c.label === categoryName);
-      if (catCfg) {
+
+      if (catCfg?.content?.length) {
         const m = computeCategoryAggregateMetrics(catCfg, checklist as any);
-        return m.aggregatePts;
+        return m.categorymaxpoints > 0 ? (m.aggregatePts / m.categorymaxpoints) * 100 : 0;
       }
-      return sumChecklistTaskScores(checklist);
+
+      // Fallback for older logs without admin content
+      const pts = sumChecklistTaskScores(checklist);
+      const maxPts = categoriesFromProgram.find(c => c.name === categoryName)?.maxpoints || 100;
+      return (pts / maxPts) * 100;
     };
 
     return (q: 'Q1' | 'Q2' | 'Q3' | 'Q4'): QuarterPerformanceForPdf => {
@@ -743,11 +862,8 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
       const finalScore = Math.round(totalFinal / currentQuarterHistory.length);
 
       const quarterCats = categories.map(c => {
-        const totalCat = currentQuarterHistory.reduce((sum, t) => sum + getCategoryScore(t.allSalesData || {}, c.name), 0);
-        const avgCat = totalCat / currentQuarterHistory.length;
-        const pct = c.maxpoints > 0 ? (avgCat / c.maxpoints) * 100 : 0;
-        const avgPct = Number.isFinite(pct) ? Math.min(100, Math.max(0, pct)) : undefined;
-        return { label: c.label, name: c.name, weightPct: c.weightPct, avgPct };
+        const avgPct = currentQuarterHistory.reduce((sum, t) => sum + getCategoryScorePercentage(t.allSalesData || {}, c.name), 0) / currentQuarterHistory.length;
+        return { label: c.label, name: c.name, weightPct: c.weightPct, avgPct: Number.isFinite(avgPct) ? Math.min(100, Math.max(0, avgPct)) : undefined };
       });
 
       return { quarter: q, count: currentQuarterHistory.length, finalScore, categories: quarterCats };
@@ -763,12 +879,24 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
 
     const getCategoryScoreFallback = (t: Transmission, categoryName: string) => {
       const allData: any = t.allSalesData || {};
-      const catCfg = departmentWeights?.IT?.find((x: any) => x.label === categoryName);
-      const checklist = allData?.[categoryName]?.checklist;
-      if (!checklist || !catCfg) return 0;
-      const m = computeCategoryAggregateMetrics(catCfg, checklist as any);
-      const maxpoints = catCfg.content?.reduce((sum, l) => sum + (l.maxpoints || 0), 0) || 100;
-      return (m.aggregatePts / maxpoints) * 100;
+      const maxpoints = categoriesFromProgram.find((x: any) => x.name === categoryName)?.maxpoints ?? 0;
+      if (departmentWeights?.Technical?.length) {
+        const pts = sumChecklistTaskScores(allData?.[categoryName]?.checklist);
+        return maxpoints > 0 ? (Number(pts) / Number(maxpoints)) * 100 : 0;
+      }
+      if (categoryName === 'Project Execution Quality') {
+        const pts = getProjectExecutionQualityScore(allData?.[categoryName]?.checklist);
+        return maxpoints > 0 ? (Number(pts) / Number(maxpoints)) * 100 : 0;
+      }
+      const categoryData = allData?.[categoryName];
+      const checklist = categoryData?.checklist as any;
+      if (!checklist) return 0;
+      let pts = Object.values(checklist).reduce((sum: number, task: any) => sum + (typeof task === 'object' && task?.score ? task.score : 0), 0) as number;
+      if (categoryName === 'Team Leadership & Accountability') {
+        if (!checklist.task2 || checklist.task2.score === undefined) pts += 35;
+        if (!checklist.task3 || checklist.task3.score === undefined) pts += 25;
+      }
+      return maxpoints > 0 ? (Number(pts) / Number(maxpoints)) * 100 : 0;
     };
 
     return computeQuarterlyStats({
@@ -853,16 +981,15 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
   };
 
   const getCompletedTasks = (log: Transmission) => {
-    if (!log.allSalesData) return [];
-    const tech = departmentWeights?.IT || [];
-    const completed: string[] = [];
-    for (const cat of tech) {
-      const data = log.allSalesData[cat.label];
-      if (data?.checklist) {
-        completed.push(cat.label);
-      }
-    }
-    return completed;
+    if (!log.pmChecklist) return [];
+    const labels = CHECKLIST_CONTENT[log.jobType] || CHECKLIST_CONTENT['Project Execution Quality'];
+    return Object.entries(log.pmChecklist)
+      .filter(([_, checked]) => checked)
+      .map(([key, _]) => {
+        const index = parseInt(key.replace('task', '')) - 1;
+        return labels[index];
+      })
+      .filter(label => !!label);
   };
 
   return (
@@ -898,7 +1025,7 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
             <div className="space-y-4">
               <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-slate-100 tracking-tight leading-none">Welcome, {user.name}!</h1>
               <p className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-slate-100 to-blue-50 dark:from-slate-800/50 dark:to-slate-800/30 border border-slate-200 dark:border-slate-600/80 shadow-sm">
-                <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 dark:text-slate-400 uppercase tracking-wide">IT KPI Logs</span>
+                <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 dark:text-slate-400 uppercase tracking-wide">Technical KPI Logs</span>
               </p>
             </div>
 
@@ -996,7 +1123,7 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
                           <FileText className={`w-6 h-6 ${selectedLog.status === 'validated' ? 'text-emerald-600' : selectedLog.status === 'rejected' ? 'text-red-600' : 'text-white'}`} />
                         </div>
                         <div className="min-w-0">
-                          <h2 className="text-lg font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight">IT Log Review</h2>
+                          <h2 className="text-lg font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight">Technical Log Review</h2>
                           <p className="text-xs font-black text-slate-400 dark:text-slate-500 dark:text-slate-500 uppercase tracking-wide truncate">{selectedLog.id} • {new Date(selectedLog.timestamp).toLocaleString()}</p>
                         </div>
                       </div>
@@ -1013,8 +1140,8 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
                               const { categoryScores } = buildTechnicalLogPdfCategoryScores(selectedLog);
                               const finalScore = getWeightedKpiScore(selectedLog);
                               const opts = {
-                                title: 'IT Log Review',
-                                filename: getLogDetailPdfFilename(selectedLog, 'IT'),
+                                title: 'Technical Log Review',
+                                filename: getLogDetailPdfFilename(selectedLog, 'Technical'),
                                 categoryScores: categoryScores.length ? categoryScores : undefined,
                                 finalScore: Number.isFinite(finalScore) ? finalScore : undefined
                               };
@@ -1111,9 +1238,10 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
 
                       <TechnicalLogDetailAuditReview
                         selectedLog={selectedLog}
-                        departmentKey="IT"
+                        departmentKey="Technical"
                         departmentWeights={departmentWeights}
                         CLASSIFICATIONS={CLASSIFICATIONS}
+                        CHECKLIST_CONTENT={CHECKLIST_CONTENT}
                         getReviewTotalScoreLegacy={getReviewTotalScoreLegacy}
                         handleDownload={handleDownload}
                       />
@@ -1186,7 +1314,7 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
                     getValidatedScore={(t) =>
                       t.status === 'validated' && t.ratings?.finalScore != null ? t.ratings.finalScore : undefined
                     }
-                    isGradingExpired={(t) => isPendingGradingConfigExpired(t, 'IT', departmentWeights)}
+                    isGradingExpired={(t) => isPendingGradingConfigExpired(t, 'Technical', departmentWeights)}
                     onEdit={onEditSubmission}
                     onClearLogs={onClearMyLogs}
                   />
@@ -1240,7 +1368,7 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
                           <div className="p-5 mt-6 rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/30 text-center space-y-3">
                             <p className="text-sm font-black text-amber-900 dark:text-amber-300 uppercase tracking-tight">Department grading not configured</p>
                             <p className="text-xs text-amber-800/90 max-w-lg mx-auto leading-relaxed">
-                              This category has no audit criteria from the administrator yet. Configure <span className="font-bold">Department grading breakdown</span> for IT in admin.
+                              This category has no audit criteria from the administrator yet. Configure <span className="font-bold">Department grading breakdown</span> for Technical in admin.
                             </p>
                           </div>
                         )}
@@ -1259,23 +1387,26 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
                         </div>
 
                         <div className="grid grid-cols-1 gap-6">
-                          {(departmentWeights?.IT?.length
-                            ? departmentWeights.IT.map((c) => [c.label, verifyDraftSnapshot[c.label]] as const)
+                          {(departmentWeights?.Technical?.length
+                            ? departmentWeights.Technical.map((c) => [c.label, verifyDraftSnapshot[c.label]] as const)
                             : (Object.entries(verifyDraftSnapshot) as [string, { checklist: Record<string, unknown>; status: string }][])
                           ).map(([cat, data]) => {
-                            const catCfg = departmentWeights?.IT?.find((w) => w.label === cat);
+                            const catCfg = departmentWeights?.Technical?.find((w) => w.label === cat);
                             const checklist = (data?.checklist ?? {}) as Record<string, unknown>;
                             const hasAdminCriteria = Boolean(catCfg?.content?.length);
                             const agg = hasAdminCriteria && catCfg
                               ? computeCategoryAggregateMetrics(catCfg, checklist as any)
                               : null;
-                            const totalScore = agg ? agg.aggregatePts : 0;
-                            const weightPct = catCfg?.weightPct ?? 0;
+                            const totalScore = agg ? agg.aggregatePts : sumChecklistTaskScores(checklist);
+                            const weightPct =
+                              catCfg?.weightPct ??
+                              parseInt(DEFAULT_CLASSIFICATIONS.find((c) => c.name === cat)?.weight ?? '0', 10) ??
+                              0;
                             const weightedScoreText = agg
                               ? `+${agg.weightedImpactPct.toFixed(2)}%`
-                              : '0.00%';
+                              : (totalScore * (weightPct / 100)).toFixed(2) + '%';
                             const weightedScoreColor =
-                              totalScore >= 70 ? 'text-blue-600' : totalScore >= 50 ? 'text-amber-600' : 'text-rose-600';
+                              totalScore >= 85 ? 'text-blue-600' : totalScore >= 70 ? 'text-blue-600' : totalScore >= 50 ? 'text-amber-600' : 'text-rose-600';
                             const ReviewIcon = getEmployeeCategoryIcon(catCfg?.icon);
                             return (
                               <div key={cat} className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
@@ -1287,7 +1418,7 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
                                     <div>
                                       <h4 className="text-sm font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight">{cat}</h4>
                                       <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 dark:text-slate-500 uppercase tracking-wide">
-                                        {hasAdminCriteria ? 'Aggregate' : 'Total score'}: {Number.isInteger(totalScore) ? totalScore : totalScore.toFixed(1)} pts
+                                        {hasAdminCriteria ? 'Aggregate' : 'Total score'}: {Number.isInteger(totalScore) ? totalScore : totalScore.toFixed(1)} Yield
                                         {agg && agg.categorymaxpoints > 0 ? (
                                           <span className="text-slate-300"> / {agg.categorymaxpoints} max</span>
                                         ) : null}
@@ -1478,7 +1609,7 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
   );
 };
 
-export default ITDashboard;
+export default TechnicalDashboard;
 
 
 

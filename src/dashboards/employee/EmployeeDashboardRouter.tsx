@@ -1,10 +1,10 @@
 import React from 'react';
-import { User, Transmission, SystemStats, Announcement, DepartmentWeights, SystemNotification } from '../types';
-import TechnicalDashboard from './departments/Technical Department/TechnicalDashboard';
-import SalesDashboard from './departments/Sales Department/SalesDashboard';
-import MarketingDashboard from './departments/Marketing Department/MarketingDashboard';
-import AccountingDashboard from './departments/Accounting Department/AccountingDashboard';
-import ITDashboard from './departments/IT Department/ITDashboard';
+import { User, Transmission, SystemStats, Announcement, DepartmentWeights, SystemNotification } from '../../types';
+import TechnicalDashboard from './departments/Technical Department/TechnicalDashboard.tsx';
+import SalesDashboard from './departments/Sales Department/SalesDashboard.tsx';
+import MarketingDashboard from './departments/Marketing Department/MarketingDashboard.tsx';
+import AccountingDashboard from './departments/Accounting Department/AccountingDashboard.tsx';
+import ITDashboard from './departments/IT Department/ITDashboard.tsx';
 
 interface Props {
   user: User;

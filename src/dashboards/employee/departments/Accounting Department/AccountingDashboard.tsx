@@ -1,46 +1,46 @@
 
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { getSubmissionStatusLabel, getSubmissionStatusSubLabel } from '../../../utils/submissionStatus';
-import { User, Transmission, SystemStats, Announcement, DepartmentWeights, CategoryWeightItem, SystemNotification } from '../../../types';
+import { getSubmissionStatusLabel, getSubmissionStatusSubLabel } from '../../../../utils/submissionStatus';
+import { User, Transmission, SystemStats, Announcement, DepartmentWeights, CategoryWeightItem, SystemNotification } from '../../../../types';
 import TechnicalCategoryAuditPanel, {
   buildDefaultPmChecklistForCategory,
   computeCategoryAggregateMetrics,
   scoreForCriterionContentItem,
-} from '../../../components/audit/TechnicalCategoryAuditPanel';
-import { getEmployeeCategoryIcon } from '../../../utils/employeeCategoryIcons';
-import { getAccountingWeightedKpiSum } from '../../../utils/technicalWeightedKpi';
-import { computeGradingConfigSignature, isPendingGradingConfigExpired } from '../../../utils/gradingConfigSignature';
-import { LedgerRegistryPanel } from '../../../components/modals/LedgerRegistryModal';
-import { EMPLOYEE_WORKSPACE_ID } from '../../../utils/employeeWorkspaceScroll';
-import { DirectDirectiveModal } from '../../../components/modals/DirectDirectiveModal';
-import AttachmentLivePreviewPanel from '../../../components/panels/AttachmentLivePreviewPanel';
-import { downloadLogDetailPdf, getLogDetailPdfFilename, type CategoryScoreForPdf } from '../../../utils/logDetailToPdf';
-import { getAppLogoDataUrl } from '../../../utils/pdfCommon';
-import { getScoreSuggestion } from '../../../utils/scoreSuggestion';
-import { downloadPerformanceScorecardPdf, type QuarterPerformanceForPdf } from '../../../utils/performanceScorecardToPdf';
-import { computeQuarterlyStats, getCurrentQuarter, type Quarter, type PerformanceCategory } from '../../../utils/performanceMatrix';
-import { TechnicalLogDetailAuditReview } from '../../../components/panels/TechnicalLogDetailAuditReview';
-import { PerformanceMatrix as PerformanceMatrixCard } from '../../../components/panels/PerformanceMatrix';
-import { PdfToast, type PdfToastState } from '../../../components/toasts/PdfToast';
-import DashboardNotificationBanner from '../../../components/workspace/DashboardNotificationBanner';
-import { getGradeForScore, getGradeColorClasses } from '../../../utils/gradingSystem';
-import { RoleSidenav } from '../../../components/navigation/RoleSidenav';
-import { APP_NAV_RAIL_PL_COLLAPSED, APP_NAV_RAIL_PL_EXPANDED } from '../../../constants/navbarLayout';
-import { useMobileSidenav } from '../../../contexts/MobileSidenavContext';
-import { useRoleSidenavRail } from '../../../contexts/RoleSidenavRailContext';
-import { useLockBodyScroll } from '../../../hooks/useLockBodyScroll';
+} from '../../../../components/audit/TechnicalCategoryAuditPanel';
+import { getEmployeeCategoryIcon } from '../../../../utils/employeeCategoryIcons';
+import { getAccountingWeightedKpiSum } from '../../../../utils/technicalWeightedKpi';
+import { computeGradingConfigSignature, isPendingGradingConfigExpired } from '../../../../utils/gradingConfigSignature';
+import { LedgerRegistryPanel } from '../../../../components/modals/LedgerRegistryModal';
+import { EMPLOYEE_WORKSPACE_ID } from '../../../../utils/employeeWorkspaceScroll';
+import { DirectDirectiveModal } from '../../../../components/modals/DirectDirectiveModal';
+import AttachmentLivePreviewPanel from '../../../../components/panels/AttachmentLivePreviewPanel';
+import { downloadLogDetailPdf, getLogDetailPdfFilename, type CategoryScoreForPdf } from '../../../../utils/logDetailToPdf';
+import { getAppLogoDataUrl } from '../../../../utils/pdfCommon';
+import { getScoreSuggestion } from '../../../../utils/scoreSuggestion';
+import { downloadPerformanceScorecardPdf, type QuarterPerformanceForPdf } from '../../../../utils/performanceScorecardToPdf';
+import { computeQuarterlyStats, getCurrentQuarter, type Quarter, type PerformanceCategory } from '../../../../utils/performanceMatrix';
+import { TechnicalLogDetailAuditReview } from '../../../../components/panels/TechnicalLogDetailAuditReview';
+import { PerformanceMatrix as PerformanceMatrixCard } from '../../../../components/panels/PerformanceMatrix';
+import { PdfToast, type PdfToastState } from '../../../../components/toasts/PdfToast';
+import DashboardNotificationBanner from '../../../../components/workspace/DashboardNotificationBanner';
+import { getGradeForScore, getGradeColorClasses } from '../../../../utils/gradingSystem';
+import { RoleSidenav } from '../../../../components/navigation/RoleSidenav';
+import { APP_NAV_RAIL_PL_COLLAPSED, APP_NAV_RAIL_PL_EXPANDED } from '../../../../constants/navbarLayout';
+import { useMobileSidenav } from '../../../../contexts/MobileSidenavContext';
+import { useRoleSidenavRail } from '../../../../contexts/RoleSidenavRailContext';
+import { useLockBodyScroll } from '../../../../hooks/useLockBodyScroll';
 import {
   startAuditPanelHold,
   stopAuditPanelHold,
   subscribeAuditPanelHoldGlobalStop,
-} from '../../../utils/auditPanelHold';
-import { getCriterionDefinitionFromWeights } from '../../../utils/criterionDefinition';
+} from '../../../../utils/auditPanelHold';
+import { getCriterionDefinitionFromWeights } from '../../../../utils/criterionDefinition';
 import {
   createStoredAttachmentFromFile,
   hydrateAttachmentData,
   attachmentsMatch,
   type HydratableAttachment,
-} from '../../../utils/attachmentStore';
+} from '../../../../utils/attachmentStore';
 import {
   Activity, CheckCircle2, Clock, Briefcase, MapPin,
   FileCheck, ChevronRight, ChevronLeft, ShieldCheck, Zap,

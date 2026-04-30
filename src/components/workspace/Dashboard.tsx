@@ -1,7 +1,7 @@
 import React from 'react';
 import { User, UserRole, Transmission, SystemStats, AuditEntry, Announcement, DepartmentWeights, SystemNotification } from '../../types';
-import EmployeeDashboard from '../../dashboards/EmployeeDashboard.tsx';
-import AdminDashboard from '../../dashboards/AdminDashboard.tsx';
+import EmployeeDashboard from '../../dashboards/employee/EmployeeDashboardRouter.tsx';
+import AdminDashboard from '../../dashboards/admin/AdminDashboard.tsx';
 import type { AuditBuckets } from '../../utils/auditStore';
 
 interface DashboardProps {

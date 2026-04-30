@@ -1,12 +1,12 @@
 
 import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { User, AuditEntry, UserRole, Transmission, DepartmentWeights, CategoryWeightItem, CategoryContentItem, SystemStats } from '../types';
+import { User, AuditEntry, UserRole, Transmission, DepartmentWeights, CategoryWeightItem, CategoryContentItem, SystemStats } from '../../types';
 import JSZip from 'jszip';
-import { createLogDetailPdfBlob, getLogDetailPdfFilename } from '../utils/logDetailToPdf';
-import { getAppLogoDataUrl } from '../utils/pdfCommon';
-import { buildLogDetailCategoryScores } from '../utils/buildLogDetailCategoryScores';
-import { downloadIsoAuditTrailPdf } from '../utils/isoAuditTrailToPdf';
+import { createLogDetailPdfBlob, getLogDetailPdfFilename } from '../../utils/logDetailToPdf';
+import { getAppLogoDataUrl } from '../../utils/pdfCommon';
+import { buildLogDetailCategoryScores } from '../../utils/buildLogDetailCategoryScores';
+import { downloadIsoAuditTrailPdf } from '../../utils/isoAuditTrailToPdf';
 import {
   type IncentiveTier,
   DEFAULT_INCENTIVE_TIERS,
@@ -14,26 +14,26 @@ import {
   saveIncentiveTiersToStorage,
   INCENTIVE_Tiers_UPDATED_EVENT,
   INCENTIVE_TIERS_STORAGE_KEY,
-} from '../utils/incentiveTiers';
+} from '../../utils/incentiveTiers';
 import {
   saveDepartmentWeightsStandard,
   loadDepartmentWeightsStandard,
   hasDepartmentWeightsStandardSnapshot,
   DEPARTMENT_WEIGHTS_STANDARD_STORAGE_KEY,
   DEPARTMENT_WEIGHTS_STANDARD_UPDATED_EVENT,
-} from '../utils/departmentWeightsStandard';
+} from '../../utils/departmentWeightsStandard';
 import {
   getGradeForScore,
   getGradeColorClasses,
-} from '../utils/gradingSystem';
-import { clearGradingEditSession } from '../utils/gradingEditSession';
-import { useLockBodyScroll } from '../hooks/useLockBodyScroll';
+} from '../../utils/gradingSystem';
+import { clearGradingEditSession } from '../../utils/gradingEditSession';
+import { useLockBodyScroll } from '../../hooks/useLockBodyScroll';
 import {
   APP_NAV_RAIL_PL_COLLAPSED,
   APP_NAV_RAIL_PL_EXPANDED,
   APP_NAV_SIDENAV_HEIGHT,
   APP_NAV_SIDENAV_TOP,
-} from '../constants/navbarLayout';
+} from '../../constants/navbarLayout';
 
 import {
   Settings,
@@ -84,29 +84,29 @@ import {
   PhoneCall,
   ListChecks
 } from 'lucide-react';
-import { useAuthActions } from '../contexts/AuthActionsContext';
-import { useMobileSidenav } from '../contexts/MobileSidenavContext';
-import { useRoleSidenavRail } from '../contexts/RoleSidenavRailContext';
-import { ValidationTabs } from '../components/forms/ValidationTabs';
-import { GradingWeightControl } from '../components/forms/GradingWeightControl';
-import { AnnualSummaryPanel } from '../components/panels/AnnualSummaryPanel';
-import { TechnicalLogDetailAuditReview } from '../components/panels/TechnicalLogDetailAuditReview';
-import AttachmentLivePreviewPanel from '../components/panels/AttachmentLivePreviewPanel';
-import { getEmployeeCategoryIcon } from '../utils/employeeCategoryIcons';
-import { GradingExpiredBadge } from '../components/status/GradingExpiredBadge';
-import { isPendingGradingConfigExpired } from '../utils/gradingConfigSignature';
+import { useAuthActions } from '../../contexts/AuthActionsContext';
+import { useMobileSidenav } from '../../contexts/MobileSidenavContext';
+import { useRoleSidenavRail } from '../../contexts/RoleSidenavRailContext';
+import { ValidationTabs } from '../../components/forms/ValidationTabs';
+import { GradingWeightControl } from '../../components/forms/GradingWeightControl';
+import { AnnualSummaryPanel } from '../../components/panels/AnnualSummaryPanel';
+import { TechnicalLogDetailAuditReview } from '../../components/panels/TechnicalLogDetailAuditReview';
+import AttachmentLivePreviewPanel from '../../components/panels/AttachmentLivePreviewPanel';
+import { getEmployeeCategoryIcon } from '../../utils/employeeCategoryIcons';
+import { GradingExpiredBadge } from '../../components/status/GradingExpiredBadge';
+import { isPendingGradingConfigExpired } from '../../utils/gradingConfigSignature';
 import {
   computeIncentivePctFromFinal,
   getSortedIncentiveTiersDesc,
   getIncentiveTierForScore,
   formatIncentiveTierPayoutDisplay,
   getSupervisorTierRowStyle,
-} from '../utils/incentiveTiers';
+} from '../../utils/incentiveTiers';
 import {
   getTechnicalWeightedKpiSum,
   getDepartmentCategoryRawScoresForSupervisor,
-} from '../utils/technicalWeightedKpi';
-import { hydrateAttachmentData, type HydratableAttachment } from '../utils/attachmentStore';
+} from '../../utils/technicalWeightedKpi';
+import { hydrateAttachmentData, type HydratableAttachment } from '../../utils/attachmentStore';
 import {
   Shield,
   MessageSquare,
@@ -134,6 +134,12 @@ interface Props {
   onUpdateAdminUsers: (newAdminUsers: Record<string, string[]>) => void;
   onClearEmployeeAudits: () => void;
   onValidate: (id: string, overrides?: SystemStats, status?: 'validated' | 'rejected') => void;
+}
+
+interface RoleMapEntry {
+  role: UserRole;
+  isActive: boolean;
+  department: string;
 }
 
 const INITIAL_DEPARTMENTS = ['Technical', 'IT', 'Sales', 'Marketing', 'Accounting', 'Admin'];
@@ -1158,11 +1164,11 @@ const AdminDashboard: React.FC<Props> = ({
   }, []);
 
   // Derived State
-  const roleMap = useMemo(() => {
+  const roleMap = useMemo<Record<string, RoleMapEntry>>(() => {
     return registry.reduce((acc: Record<string, any>, u: any) => ({
       ...acc,
       [u.name]: { role: u.role, isActive: u.isActive !== false, department: u.department }
-    }), {});
+    }), {} as Record<string, any>);
   }, [registry]);
 
   const filteredLogs = useMemo(() => {
@@ -1660,7 +1666,7 @@ const AdminDashboard: React.FC<Props> = ({
     const currentlyActive = !!roleMap[userName]?.isActive;
     if (isAdmin && currentlyActive) {
       const activeAdminCount = registry.filter(
-        (u: any) => u.role === UserRole.ADMIN && roleMap[u.name]?.isActive
+        (u: any) => u.role === UserRole.ADMIN && (roleMap as Record<string, any>)[u.name]?.isActive
       ).length;
       if (activeAdminCount <= 1) {
         triggerToast('Cannot deactivate', 'At least one admin must remain active.');
@@ -2119,12 +2125,12 @@ const AdminDashboard: React.FC<Props> = ({
 
     transmissionHistory
       .filter((t) => {
-        const isEmployee = roleMap[t.userName]?.role === UserRole.EMPLOYEE;
+        const isEmployee = (roleMap as Record<string, any>)[t.userName]?.role === UserRole.EMPLOYEE;
         const hasStatus = t.status === 'validated' || t.status === 'rejected';
         return isEmployee && hasStatus;
       })
       .forEach((t) => {
-        const dept = roleMap[t.userName]?.department || 'Unknown';
+        const dept = (roleMap as Record<string, any>)[t.userName]?.department || 'Unknown';
         if (deptCounts[dept] == null) deptCounts[dept] = 0;
         deptCounts[dept] += 1;
       });
@@ -2231,7 +2237,7 @@ const AdminDashboard: React.FC<Props> = ({
     const inactiveNodes = totalNodes - activeNodes;
 
     const normalizedSearch = registrySearch.trim().toLowerCase();
-    const statusFilterValues = {
+    const statusFilterValues: Record<string, (name: string) => boolean> = {
       all: () => true,
       active: (name: string) => !!roleMap[name]?.isActive,
       inactive: (name: string) => !roleMap[name]?.isActive
