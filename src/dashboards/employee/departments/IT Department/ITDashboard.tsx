@@ -538,7 +538,7 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
       pmChecklist: { ...formData.pmChecklist },
       allSalesData: categoryInputsRef.current as any,
       ratings: {
-        performance: 0, proficiency: 0, professionalism: 0, finalScore: 0, incentivePct: 0
+        performance: 0, proficiency: 0, professionalism: 0, finalScore: currentTotalWeightedScore, incentivePct: 0
       },
       gradingConfigSignature: computeGradingConfigSignature('IT', departmentWeights),
     };

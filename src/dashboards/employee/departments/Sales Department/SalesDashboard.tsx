@@ -532,7 +532,7 @@ const SalesDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmis
       accountsClosedValue: formData.accountsClosedValue,
       allSalesData: categoryInputsRef.current as any,
       ratings: {
-        ...suggestedGrades, finalScore: 0, incentivePct: 0
+        ...suggestedGrades, finalScore: currentTotalWeightedScore, incentivePct: 0
       },
       gradingConfigSignature: computeGradingConfigSignature('Sales', departmentWeights),
     };
@@ -665,7 +665,7 @@ const SalesDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmis
     return sales.find((c) => c.label === formData.jobType) ?? sales[0];
   }, [departmentWeights, formData.jobType]);
 
-  const salesClassificationRowsForKpi = useMemo(
+  const classificationWeights = useMemo(
     () => getSalesClassificationRowsForKpi(departmentWeights),
     [departmentWeights]
   );
@@ -705,10 +705,10 @@ const SalesDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmis
     (sub: Transmission): number => {
       if (sub.ratings?.finalScore != null && sub.status === 'validated') return sub.ratings.finalScore;
       return Math.round(
-        getSalesWeightedKpiSum(sub, departmentWeights, SALES_CHECKLIST_CONTENT, salesClassificationRowsForKpi)
+        getSalesWeightedKpiSum(sub, departmentWeights, SALES_CHECKLIST_CONTENT, classificationWeights)
       );
     },
-    [departmentWeights, salesClassificationRowsForKpi]
+    [departmentWeights, classificationWeights]
   );
 
   const buildSalesLogPdfCategoryScores = useCallback(
@@ -751,11 +751,11 @@ const SalesDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmis
         log,
         departmentWeights,
         SALES_CHECKLIST_CONTENT,
-        salesClassificationRowsForKpi
+        classificationWeights
       );
       return { categoryScores, weightedSumApprox };
     },
-    [departmentWeights, salesClassificationRowsForKpi, CLASSIFICATIONS]
+    [departmentWeights, classificationWeights, CLASSIFICATIONS]
   );
 
   const getReviewTotalScoreLegacy = useCallback(

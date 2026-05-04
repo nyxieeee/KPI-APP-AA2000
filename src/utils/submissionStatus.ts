@@ -16,9 +16,9 @@ export function getSubmissionStatusLabel(t: Pick<Transmission, 'status' | 'super
 
 export function getSubmissionStatusSubLabel(t: Pick<Transmission, 'status' | 'supervisorRecommendation'>): string {
   if (t.status === 'validated') return 'Admin has finalized and approved this submission';
-  if (t.status === 'rejected') return 'Admin has finalized — see supervisor comments';
-  if (t.supervisorRecommendation) return 'Supervisor reviewed — waiting for admin finalization';
-  return 'Waiting for supervisor review';
+  if (t.status === 'rejected') return 'Admin has finalized — see feedback';
+  if (t.supervisorRecommendation) return 'Awaiting final review';
+  return 'Waiting for admin review';
 }
 
 export function getSubmissionStatusColor(t: Pick<Transmission, 'status' | 'supervisorRecommendation'>): 'emerald' | 'red' | 'orange' | 'blue' {

@@ -72,17 +72,19 @@ function DashboardGate({
   user,
   sessionHydrating,
   dashboardLayout,
+  onDevLogin,
 }: {
   user: User | null;
   sessionHydrating: boolean;
   dashboardLayout: React.ReactNode;
+  onDevLogin: (user: User) => void;
 }) {
   const { department: paramDept } = useParams<{ department: string }>();
   if (sessionHydrating) {
     return <SessionHydratingScreen />;
   }
   if (!user) {
-    return <NoPortalSession />;
+    return <NoPortalSession onDevLogin={onDevLogin} />;
   }
   const slug = deptSlug(user.department);
   const paramLower = paramDept?.toLowerCase() ?? '';
@@ -107,15 +109,43 @@ function SessionHydratingScreen() {
 }
 
 /** Shown when the KPI app is opened without a portal session in the URL. */
-function NoPortalSession() {
+function NoPortalSession({ onDevLogin }: { onDevLogin?: (user: User) => void }) {
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-900">
       <div className="max-w-md w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-6 shadow-sm text-center">
         <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">No active session</h1>
-        <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+        <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-6">
           This workspace is launched from the AA2000 portal. Please open it from your portal so a session
           can be established.
         </p>
+
+        {import.meta.env.DEV && onDevLogin && (
+          <div className="pt-6 border-t border-slate-100 dark:border-slate-700">
+             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Development Bypass</p>
+             <div className="grid grid-cols-2 gap-2">
+                {INITIAL_REGISTRY.map(u => (
+                  <button
+                    key={u.name}
+                    onClick={() => {
+                      const financials = DEV_FALLBACK_ROLE_FINANCIALS[u.role as UserRole] || { base: 60000, target: 10000 };
+                      onDevLogin({
+                        id: `dev-${btoa(u.name)}`,
+                        name: u.name,
+                        email: `${u.name.replace(/\s+/g, '')}@aa2000.com`,
+                        role: u.role as UserRole,
+                        department: u.department,
+                        baseSalary: financials.base,
+                        incentiveTarget: financials.target
+                      });
+                    }}
+                    className="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-blue-600 hover:text-white rounded text-[10px] font-black uppercase transition-all"
+                  >
+                    {u.name}
+                  </button>
+                ))}
+             </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -169,55 +199,37 @@ function saveStoredTransmissions(pending: Transmission[], history: Transmission[
   try {
     localStorage.setItem(
       TRANSMISSIONS_STORAGE_KEY,
-      JSON.stringify({
-        pending: pending.map(stripAttachmentPayloadFromTransmission),
-        history: history.map(stripAttachmentPayloadFromTransmission),
-      })
+      JSON.stringify({ pending, history })
     );
   } catch {
-    // ignore quota / private mode
+    // ignore
   }
 }
 
-/** Reads rail state from context and applies dynamic left-padding to <main> on desktop. */
-function RailAwareMain({ children }: { children: React.ReactNode }) {
-  const { railOpen } = useRoleSidenavRail();
-  return (
-    <main
-      className={`flex-1 flex flex-col min-h-0 w-full max-w-[1800px] mx-auto transition-[padding] duration-200 ease-out ${
-        railOpen ? 'lg:pl-[272px]' : 'lg:pl-[76px]'
-      }`}
-    >
-      {children}
-    </main>
-  );
-}
-
-/** Bundled program defaults: merged into any stored weights so labels/weights from admin always align with criterion shells. */
 const BUNDLED_DEFAULT_DEPARTMENT_WEIGHTS: DepartmentWeights = {
   Technical: [
     { label: 'Project Execution Quality', weightPct: 50, content: [{ label: 'Zero Back-Job Rate', maxpoints: 25 }, { label: 'First-Time Fix Quality', maxpoints: 12 }, { label: 'Technical Compliance & Standards', maxpoints: 7 }, { label: 'Schedule Adherence', maxpoints: 6 }] },
-    { label: 'Client Satisfaction & Turnover', weightPct: 25, content: [{ label: 'Client Satisfaction Score', maxpoints: 15 }, { label: 'Client Retention Rate', maxpoints: 10 }] },
-    { label: 'Team Leadership & Accountability', weightPct: 15, content: [{ label: 'Team Coordination', maxpoints: 8 }, { label: 'Accountability & Ownership', maxpoints: 7 }] },
-    { label: 'Attendance & Discipline', weightPct: 5, content: [{ label: 'Attendance Rate', maxpoints: 3 }, { label: 'Discipline & Conduct', maxpoints: 2 }] },
-    { label: 'Additional Responsibilities', weightPct: 3, content: [{ label: 'Additional Tasks Completed', maxpoints: 3 }] },
-    { label: 'Administrative Excellence', weightPct: 2, content: [{ label: 'Report Accuracy & Timeliness', maxpoints: 2 }] },
+    { label: 'Client Satisfaction & Turnover', weightPct: 25, content: [{ label: 'Client Satisfaction Score - CSAT', maxpoints: 15 }, { label: 'Smooth Turnover Rate', maxpoints: 5 }, { label: 'Zero Client Complaints/Escalations', maxpoints: 5 }] },
+    { label: 'Team Leadership & Accountability', weightPct: 15, content: [{ label: 'Team Performance Under Supervision', maxpoints: 7 }, { label: 'Safety Record - Zero Incidents', maxpoints: 4 }, { label: 'Accountability & Ownership', maxpoints: 4 }] },
+    { label: 'Additional Responsibilities', weightPct: 3, content: [{ label: 'Extra assignments and coverage', maxpoints: 3 }] },
+    { label: 'Administrative Excellence', weightPct: 2, content: [{ label: 'Report Submission Timeliness', maxpoints: 1 }, { label: 'Report Accuracy', maxpoints: 1 }] },
+    { label: 'Attendance & Discipline', weightPct: 5, content: [{ label: 'Attendance Reliability', maxpoints: 3 }, { label: 'Punctuality & Timekeeping', maxpoints: 1 }, { label: 'Operational Preparedness', maxpoints: 1 }] },
   ],
   IT: [
-    { label: 'System Uptime & Reliability', weightPct: 50, content: [{ label: 'Uptime Percentage', maxpoints: 30 }, { label: 'Incident Prevention', maxpoints: 20 }] },
-    { label: 'Technical Support Quality', weightPct: 25, content: [{ label: 'Ticket Resolution Rate', maxpoints: 15 }, { label: 'User Satisfaction Score', maxpoints: 10 }] },
-    { label: 'Security & Compliance', weightPct: 15, content: [{ label: 'Security Audit Score', maxpoints: 9 }, { label: 'Policy Compliance', maxpoints: 6 }] },
-    { label: 'Attendance & Discipline', weightPct: 5, content: [{ label: 'Attendance Rate', maxpoints: 3 }, { label: 'Discipline & Conduct', maxpoints: 2 }] },
-    { label: 'Additional Responsibilities', weightPct: 3, content: [{ label: 'Additional Tasks Completed', maxpoints: 3 }] },
-    { label: 'Administrative Excellence', weightPct: 2, content: [{ label: 'Documentation & Process Compliance', maxpoints: 2 }] },
+    { label: 'System Uptime & Stability', weightPct: 40, content: [{ label: 'Server Availability', maxpoints: 20 }, { label: 'Network Performance', maxpoints: 20 }] },
+    { label: 'Technical Support Response', weightPct: 30, content: [{ label: 'First Response Time', maxpoints: 15 }, { label: 'Issue Resolution Time', maxpoints: 15 }] },
+    { label: 'Security & Compliance', weightPct: 20, content: [{ label: 'Security Audit Score', maxpoints: 10 }, { label: 'Patch Compliance', maxpoints: 10 }] },
+    { label: 'Attendance & Discipline', weightPct: 5, content: [{ label: 'Attendance Rate', maxpoints: 3 }, { label: 'Professional conduct', maxpoints: 2 }] },
+    { label: 'Additional Responsibilities', weightPct: 3, content: [{ label: 'Project Contributions', maxpoints: 3 }] },
+    { label: 'Administrative Excellence', weightPct: 2, content: [{ label: 'Documentation accuracy', maxpoints: 2 }] },
   ],
   Sales: [
-    { label: 'Revenue Score', weightPct: 50, content: [{ label: 'Revenue vs Target', maxpoints: 50 }] },
-    { label: 'Accounts Score', weightPct: 25, content: [{ label: 'Accounts Closed', maxpoints: 25 }] },
-    { label: 'Activities Score', weightPct: 15, content: [{ label: 'Meetings Conducted', maxpoints: 8 }, { label: 'Calls Made', maxpoints: 7 }] },
-    { label: 'Attendance & Discipline', weightPct: 5, content: [{ label: 'Attendance Rate', maxpoints: 3 }, { label: 'Discipline & Conduct', maxpoints: 2 }] },
-    { label: 'Additional Responsibilities', weightPct: 3, content: [{ label: 'Additional Tasks Completed', maxpoints: 3 }] },
-    { label: 'Administrative Excellence', weightPct: 2, content: [{ label: 'Process & documentation compliance', maxpoints: 2 }] },
+    { label: 'Revenue Achievement', weightPct: 50, content: [{ label: 'Target vs Actual Revenue', maxpoints: 50 }] },
+    { label: 'End-User Accounts Closed', weightPct: 25, content: [{ label: 'New Accounts Acquired', maxpoints: 25 }] },
+    { label: 'Sales Activities', weightPct: 15, content: [{ label: 'Prospecting Calls/Meetings', maxpoints: 15 }] },
+    { label: 'Quotation Management', weightPct: 5, content: [{ label: 'Quotation Turnaround Time', maxpoints: 5 }] },
+    { label: 'Attendance & Discipline', weightPct: 3, content: [{ label: 'Attendance Rate', maxpoints: 3 }] },
+    { label: 'Administrative Excellence', weightPct: 2, content: [{ label: 'CRM update compliance', maxpoints: 2 }] },
   ],
   Marketing: [
     { label: 'Campaign Execution & Quality', weightPct: 50, content: [{ label: 'Campaign Completion Rate', maxpoints: 25 }, { label: 'Creative Quality Score', maxpoints: 25 }] },
@@ -258,6 +270,9 @@ interface AppInnerProps {
 const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
   const { isDark } = useDarkMode();
   const [user, setUser] = useState<User | null>(null);
+  const userRef = React.useRef<User | null>(null);
+  useEffect(() => { userRef.current = user; }, [user]);
+
   const [sessionHydrating, setSessionHydrating] = useState(true);
   const [auditBuckets, setAuditBuckets] = useState<AuditBuckets>(() => {
     // One-time clear: wipe all pre-seeded/stored submission history on first boot after this version
@@ -265,44 +280,22 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
     if (!localStorage.getItem(CLEARED_FLAG)) {
       localStorage.removeItem('aa2000_kpi_audits_by_department');
       localStorage.removeItem('aa2000_kpi_transmissions');
-      localStorage.removeItem('aa2000_kpi_department_weights');
-      localStorage.removeItem('aa2000_kpi_department_weights_standard');
       localStorage.setItem(CLEARED_FLAG, '1');
-      return {};
     }
-    let buckets: AuditBuckets;
-    const loaded = loadDepartmentBuckets();
-    const hasAnyAudit =
-      loaded &&
-      Object.keys(loaded).some((k) => {
-        const b: any = (loaded as any)[k];
-        return Array.isArray(b?.pending) && b.pending.length > 0 || Array.isArray(b?.history) && b.history.length > 0;
-      });
-    if (hasAnyAudit) {
-      buckets = loaded;
-    } else {
-      const legacy = loadLegacyTransmissions();
-      if (legacy && (legacy.pending.length > 0 || legacy.history.length > 0)) {
-        buckets = migrateLegacyTransmissionsToBuckets({ pending: legacy.pending, history: legacy.history, registry: INITIAL_REGISTRY });
-      } else {
-        buckets = migrateLegacyTransmissionsToBuckets({ pending: initialPending, history: initialHistory, registry: INITIAL_REGISTRY });
-      }
-    }
-    return dedupeBuckets(buckets);
+    return loadDepartmentBuckets();
   });
-  const { pending: pendingTransmissions, history: transmissionHistory } = useMemo(() => flattenBuckets(auditBuckets), [auditBuckets]);
-  const [validatedStats, setValidatedStats] = useState<Record<string, SystemStats>>({});
-  const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([]);
+
   const [notifications, setNotifications] = useState<SystemNotification[]>(loadStoredNotifications);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [registry, setRegistry] = useState<typeof INITIAL_REGISTRY>(INITIAL_REGISTRY);
+  const [registry, setRegistry] = useState<any[]>(INITIAL_REGISTRY);
   const [adminUsers, setAdminUsers] = useState<Record<string, string[]>>(INITIAL_ADMIN_USERS);
-
-  /** Single source for employee/supervisor grading UI (weights, criteria content, panel definitions). Mutated only from admin: Edit weighted scores → Commit, Load standard, or per-dept Reset (not from unsaved drafts). */
   const [departmentWeights, setDepartmentWeights] = useState<DepartmentWeights>(createInitialDepartmentWeightsFromStorage);
+  const [validatedStats, setValidatedStats] = useState<Record<string, Transmission>>({});
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  const { pending: pendingTransmissions, history: transmissionHistory } = useMemo(() => flattenBuckets(auditBuckets), [auditBuckets]);
 
   // Debug utility: log every button-like click so non-firing actions are easy to trace in browser console.
   useEffect(() => {
@@ -340,16 +333,12 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
     return () => document.removeEventListener('click', onClickCapture, true);
   }, [location.pathname]);
 
-  // Demo audits removed — submission history starts clean for all employees.
-
-  // Persist bucketed audit store so other tabs see updates (live sync)
   useEffect(() => {
     saveDepartmentBuckets(auditBuckets);
     // Backward-compat during transition: keep legacy key updated for any code path still listening to it.
     saveStoredTransmissions(pendingTransmissions, transmissionHistory);
   }, [auditBuckets, pendingTransmissions, transmissionHistory]);
 
-  // Persist grading program (department weights) so admin edits are reflected everywhere after reload
   useEffect(() => {
     saveDepartmentWeightsToStorage(departmentWeights);
   }, [departmentWeights]);
@@ -366,42 +355,13 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
         try {
           const parsed = JSON.parse(e.newValue) as AuditBuckets;
           if (parsed && typeof parsed === 'object') setAuditBuckets(parsed);
-        } catch {
-          // ignore
-        }
-      }
-      if (e.key === TRANSMISSIONS_STORAGE_KEY && e.newValue != null) {
-        try {
-          const parsed = JSON.parse(e.newValue) as { pending: Transmission[]; history: Transmission[] };
-          if (Array.isArray(parsed?.pending) && Array.isArray(parsed?.history)) {
-            setAuditBuckets(migrateLegacyTransmissionsToBuckets({ pending: parsed.pending, history: parsed.history, registry: INITIAL_REGISTRY }));
-          }
-        } catch {
-          // ignore
-        }
-      }
-      if (e.key === DEPARTMENT_WEIGHTS_STORAGE_KEY && e.newValue != null) {
-        try {
-          const parsed = JSON.parse(e.newValue) as DepartmentWeights;
-          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-            setDepartmentWeights(
-              mergeDepartmentWeightsWithProgramDefaults(
-                migrateStoredDepartmentWeights(parsed),
-                BUNDLED_DEFAULT_DEPARTMENT_WEIGHTS
-              )
-            );
-          }
-        } catch {
-          // ignore
-        }
+        } catch { /* ignore */ }
       }
       if (e.key === NOTIFICATIONS_STORAGE_KEY && e.newValue != null) {
         try {
           const parsed = JSON.parse(e.newValue) as SystemNotification[];
           if (Array.isArray(parsed)) setNotifications(parsed);
-        } catch {
-          // ignore
-        }
+        } catch { /* ignore */ }
       }
     };
     window.addEventListener('storage', onStorage);
@@ -421,46 +381,44 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
 
   const addAuditEntry = useCallback((action: string, details: string, type: 'INFO' | 'OK' | 'WARN' = 'INFO', userName?: string) => {
     setAuditLogs((prev) => [
-      { id: genId(), timestamp: new Date().toISOString(), user: userName || user?.name || 'SYSTEM', action, details, type },
+      { id: genId(), timestamp: new Date().toISOString(), user: userName || userRef.current?.name || 'SYSTEM', action, details, type },
       ...prev
     ].slice(0, 500));
-  }, [user]);
+  }, []);
 
-  // Hydrate `user` in this priority order:
-  //   1. Portal launch params in the URL (`__launch`/`__actor`, decrypted with VITE_LAUNCH_AES_KEY).
-  //      Resolve the session token via the portal API (`GET /session/:token`) to get the full
-  //      account + employee record, then map to `User`.
-  //   2. sessionStorage on same-tab refresh (so we don't re-fetch the portal on every nav).
-  // sessionStorage clears on tab/browser close — credentials never touch localStorage.
-  useEffect(() => {
-    let cancelled = false;
-    let hydrationFinished = false;
-    const finishHydration = () => {
-      if (cancelled || hydrationFinished) return;
-      hydrationFinished = true;
-      setSessionHydrating(false);
-    };
+  const hydrationFinishedRef = React.useRef(false);
+  const finishHydration = useCallback(() => {
+    hydrationFinishedRef.current = true;
+    setSessionHydrating(false);
+  }, []);
 
-    const adoptUser = (next: User, source: 'portal' | 'restore') => {
-      const stored = loadDepartmentWeightsFromStorage();
-      if (stored) {
-        setDepartmentWeights(
-          mergeDepartmentWeightsWithProgramDefaults(
-            migrateStoredDepartmentWeights(stored),
-            BUNDLED_DEFAULT_DEPARTMENT_WEIGHTS
-          )
-        );
-      }
-      setUser(next);
-      onUserChange(next.id);
-      sessionWrite(SESSION_USER_STORAGE_KEY, JSON.stringify(next));
-      addNotification(`Welcome, ${next.name}.`, next.id, 'SUCCESS');
-      addAuditEntry(
-        source === 'portal' ? 'SESSION_PORTAL' : 'SESSION_RESTORE',
-        `Role: ${next.role} | AccountID: ${next.id}`,
-        'OK',
-        next.name
+  const adoptUser = useCallback((next: User, source: 'portal' | 'restore') => {
+    const stored = loadDepartmentWeightsFromStorage();
+    if (stored) {
+      setDepartmentWeights(
+        mergeDepartmentWeightsWithProgramDefaults(
+          migrateStoredDepartmentWeights(stored),
+          BUNDLED_DEFAULT_DEPARTMENT_WEIGHTS
+        )
       );
+    }
+    setUser(next);
+    onUserChange(next.id);
+    sessionWrite(SESSION_USER_STORAGE_KEY, JSON.stringify(next));
+    addNotification(`Welcome, ${next.name}.`, next.id, 'SUCCESS');
+    addAuditEntry(
+      source === 'portal' ? 'SESSION_PORTAL' : 'SESSION_RESTORE',
+      `Role: ${next.role} | AccountID: ${next.id}`,
+      'OK',
+      next.name
+    );
+  }, [onUserChange, addNotification, addAuditEntry]);
+
+    useEffect(() => {
+      let cancelled = false;
+    const checkHydration = () => {
+      if (cancelled || hydrationFinishedRef.current) return true;
+      return false;
     };
 
     const restoreFromSession = (): boolean => {
@@ -493,7 +451,7 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
       const fallbackName = fallbackNameRaw.toLowerCase();
       const match = INITIAL_REGISTRY.find((u) => String(u.name).toLowerCase() === fallbackName);
       if (!match) return false;
-      const financials = DEV_FALLBACK_ROLE_FINANCIALS[match.role];
+      const financials = DEV_FALLBACK_ROLE_FINANCIALS[match.role] || { base: 60000, target: 10000 };
       adoptUser(
         {
           id: `dev-${btoa(match.name)}`,
@@ -511,7 +469,7 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
     };
 
     const watchdogId = window.setTimeout(() => {
-      if (cancelled || hydrationFinished) return;
+      if (checkHydration()) return;
       if (restoreFromSession()) {
         finishHydration();
         return;
@@ -534,8 +492,6 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
       if (launch.sessionToken) sessionWrite(PORTAL_LAUNCH_TOKEN_STORAGE_KEY, launch.sessionToken);
       if (launch.accountId) sessionWrite(PORTAL_LAUNCH_ACCOUNT_STORAGE_KEY, launch.accountId);
 
-      // Strip launch params from URL immediately so they don't linger in history,
-      // even if the API call below fails — the user can reload from the portal.
       if (launch.sessionToken || launch.accountId || launch.encrypted) {
         clearPortalLaunchFromUrl();
       }
@@ -549,7 +505,7 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
         }
         try {
           const data = await fetchPortalSessionByToken(launchSessionToken);
-          if (cancelled) return;
+          if (checkHydration()) return;
           if (data) {
             const next = mapPortalSessionToUser(data);
             if (next) {
@@ -562,7 +518,7 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
             console.error('[App] Portal session resolved but could not map to a KPI user.');
           }
         } catch (err) {
-          if (cancelled) return;
+          if (checkHydration()) return;
           console.error('[App] Failed to resolve portal session:', err);
         }
       }
@@ -582,7 +538,7 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
       cancelled = true;
       window.clearTimeout(watchdogId);
     };
-  }, [onUserChange, addNotification, addAuditEntry]);
+  }, [onUserChange, adoptUser, addNotification, addAuditEntry]);
 
   const handleLogout = useCallback(() => {
     addAuditEntry('SESSION_TERM', 'Disconnected', 'INFO');
@@ -593,6 +549,8 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
     sessionRemove(PORTAL_LAUNCH_ACCOUNT_STORAGE_KEY);
     navigate('/');
   }, [onUserChange, addAuditEntry, navigate]);
+
+  const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([]);
 
   const handleTransmit = useCallback((transmission: Transmission) => {
     if (!user) return;
@@ -712,7 +670,7 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
     addAuditEntry('ADMIN_DECOMMISSION', `Removed ${userName}`, 'WARN');
   }, [addAuditEntry]);
 
-  const handleUpdateRegistry = useCallback((newRegistry: typeof INITIAL_REGISTRY) => {
+  const handleUpdateRegistry = useCallback((newRegistry: any[]) => {
     setRegistry(newRegistry);
   }, []);
 
@@ -864,13 +822,13 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
           ) : user ? (
             <Navigate to={loggedInHomePath} replace />
           ) : (
-            <NoPortalSession />
+            <NoPortalSession onDevLogin={(u) => adoptUser(u, 'restore')} />
           )
         }
       />
       <Route
         path="/dashboard/:department"
-        element={<DashboardGate user={user} sessionHydrating={sessionHydrating} dashboardLayout={dashboardLayout} />}
+        element={<DashboardGate user={user} sessionHydrating={sessionHydrating} dashboardLayout={dashboardLayout} onDevLogin={(u) => adoptUser(u, 'restore')} />}
       />
       <Route
         path="/"
@@ -880,7 +838,7 @@ const AppInner: React.FC<AppInnerProps> = ({ onUserChange }) => {
           ) : user ? (
             <Navigate to={loggedInHomePath} replace />
           ) : (
-            <NoPortalSession />
+            <NoPortalSession onDevLogin={(u) => adoptUser(u, 'restore')} />
           )
         }
       />
@@ -910,5 +868,14 @@ const App: React.FC = () => {
 
 export default App;
 
-
-
+function RailAwareMain({ children }: { children: React.ReactNode }) {
+  const { railOpen } = useRoleSidenavRail();
+  return (
+    <main
+      className="flex-1 min-h-0 flex flex-col transition-all duration-300 ease-in-out"
+      style={{ paddingLeft: railOpen ? 'var(--nav-rail-expanded)' : 'var(--nav-rail-collapsed)' }}
+    >
+      {children}
+    </main>
+  );
+}

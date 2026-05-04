@@ -1865,7 +1865,7 @@ const AdminDashboard: React.FC<Props> = ({
                           'bg-slate-50 dark:bg-slate-900 text-slate-400 dark:text-slate-500 dark:text-slate-500'
                         }`}>
                         {diff > 0 ? <TrendingUp className="w-3 h-3" /> : diff < 0 ? <TrendingDown className="w-3 h-3" /> : null}
-                        {diff > 0 ? `+${diff}` : diff < 0 ? `${diff}` : '='} vs last mo.
+                        {diff > 0 ? `+${diff.toFixed(2).replace(/\.?0+$/, '')}` : diff < 0 ? `${diff.toFixed(2).replace(/\.?0+$/, '')}` : '='} vs last mo.
                       </div>
                     )}
 
@@ -1932,21 +1932,21 @@ const AdminDashboard: React.FC<Props> = ({
             return (
               <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-3xl shadow-sm overflow-hidden">
                 <div className="overflow-x-auto">
-                  <div className="grid grid-cols-[1fr_auto_auto_auto] gap-0 text-[10px] font-black uppercase tracking-wide text-slate-400 dark:text-slate-500 dark:text-slate-500 px-5 py-3 border-b border-slate-100 dark:border-slate-700 min-w-[340px]">
+                  <div className="grid grid-cols-[1fr_100px_100px_110px] gap-0 text-[10px] font-black uppercase tracking-wide text-slate-400 dark:text-slate-500 dark:text-slate-500 px-5 py-3 border-b border-slate-100 dark:border-slate-700 min-w-[340px]">
                     <span>Employee</span>
-                    <span className="text-center px-4">Last Month</span>
-                    <span className="text-center px-4">This Month</span>
-                    <span className="text-center px-4">Change</span>
+                    <span className="text-center">Last Month</span>
+                    <span className="text-center">This Month</span>
+                    <span className="text-center">Change</span>
                   </div>
                   {rows.map(row => {
                     const diff = row.current != null && row.last != null ? row.current - row.last : null;
                     return (
-                      <div key={row.name} className="grid grid-cols-[1fr_auto_auto_auto] gap-0 items-center px-5 py-2 border-b border-slate-50 dark:border-slate-700 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors min-w-[340px]">
+                      <div key={row.name} className="grid grid-cols-[1fr_100px_100px_110px] gap-0 items-center px-5 py-2 border-b border-slate-50 dark:border-slate-700 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors min-w-[340px]">
                         <div>
                           <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{row.name}</p>
                           <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 dark:text-slate-500 uppercase tracking-wide">{row.dept}</p>
                         </div>
-                        <div className="text-center px-4 text-sm font-black text-slate-400 dark:text-slate-500 dark:text-slate-500 tabular-nums flex flex-col items-center gap-0.5">
+                        <div className="text-center text-sm font-black text-slate-400 dark:text-slate-500 dark:text-slate-500 tabular-nums flex flex-col items-center gap-0.5">
                           {row.last != null ? (
                             <>
                               <span>{row.last}%</span>
@@ -1954,7 +1954,7 @@ const AdminDashboard: React.FC<Props> = ({
                             </>
                           ) : '—'}
                         </div>
-                        <div className={`text-center px-4 text-sm font-black tabular-nums flex flex-col items-center gap-0.5 ${row.current != null ? 'text-slate-900 dark:text-slate-100' : 'text-slate-300'
+                        <div className={`text-center text-sm font-black tabular-nums flex flex-col items-center gap-0.5 ${row.current != null ? 'text-slate-900 dark:text-slate-100' : 'text-slate-300'
                           }`}>
                           {row.current != null ? (
                             <>
@@ -1965,7 +1965,7 @@ const AdminDashboard: React.FC<Props> = ({
                             </>
                           ) : '—'}
                         </div>
-                        <div className={`flex items-center justify-center gap-1 px-3 py-1 mx-2 rounded-xl text-[10px] font-black uppercase tracking-wide ${diff == null ? 'text-slate-300' :
+                        <div className={`flex items-center justify-center gap-1 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wide ${diff == null ? 'text-slate-300' :
                           diff > 0 ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600' :
                             diff < 0 ? 'bg-red-50 dark:bg-red-900/30 text-red-600' :
                               'bg-slate-50 dark:bg-slate-900 text-slate-400 dark:text-slate-500 dark:text-slate-500'
@@ -1974,7 +1974,7 @@ const AdminDashboard: React.FC<Props> = ({
                             ? <TrendingUp className="w-3 h-3" />
                             : <TrendingDown className="w-3 h-3" />
                           )}
-                          {diff == null ? '—' : diff > 0 ? `+${diff}` : diff < 0 ? `${diff}` : '±0'}
+                          {diff == null ? '—' : diff > 0 ? `+${diff.toFixed(2).replace(/\.?0+$/, '')}` : diff < 0 ? `${diff.toFixed(2).replace(/\.?0+$/, '')}` : '±0'}
                         </div>
                       </div>
                     );
@@ -2956,7 +2956,7 @@ const AdminDashboard: React.FC<Props> = ({
     ] as const;
 
     const emptyMessages = {
-      pending: { icon: <ClipboardCheck className="w-12 h-12 text-slate-300" />, title: 'No pending submissions', desc: 'Once supervisors finish grading, their submissions will show up here for approval or rejection.' },
+      pending: { icon: <ClipboardCheck className="w-12 h-12 text-slate-300" />, title: 'No pending submissions', desc: 'Once employees submit their KPIs, they will show up here for admin review and final grading.' },
       validated: { icon: <ClipboardCheck className="w-12 h-12 text-slate-300" />, title: 'No validated submissions yet', desc: 'Approved submissions will appear here.' },
       rejected: { icon: <ClipboardCheck className="w-12 h-12 text-slate-300" />, title: 'No rejected submissions', desc: 'Submissions returned for revision will appear here.' },
     };
@@ -3107,16 +3107,6 @@ const AdminDashboard: React.FC<Props> = ({
                           >
                             <Eye className="w-4 h-4" />
                             Review & Grade
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              onValidate(t.id, undefined, 'validated');
-                              triggerToast('Approved', `Submission finalized and approved.`);
-                            }}
-                            className="px-4 py-3 rounded-xl bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wide hover:bg-emerald-700 transition-colors"
-                          >
-                            Quick Approve
                           </button>
                           <button
                             type="button"
@@ -3349,7 +3339,7 @@ const AdminDashboard: React.FC<Props> = ({
 
                     <div>
                       <label className="text-[9px] font-black text-slate-500 dark:text-slate-400 dark:text-slate-400 uppercase tracking-wide block mb-1">
-                        Payout range (supervisor Yield cards)
+                        Payout range (Incentive cards)
                       </label>
                       <input
                         type="text"
@@ -3359,7 +3349,7 @@ const AdminDashboard: React.FC<Props> = ({
                         className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl px-4 py-3 text-sm font-black text-slate-900 dark:text-slate-100 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-200 dark:border-blue-700 transition-all"
                       />
                       <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 dark:text-slate-500 mt-1 uppercase tracking-wide">
-                        Shown on department supervisor dashboards; leave blank to show Yield % instead.
+                        Shown on performance dashboards; leave blank to show Yield % instead.
                       </p>
                     </div>
                   </div>
@@ -4174,8 +4164,8 @@ const AdminDashboard: React.FC<Props> = ({
                       const weight = weights[idx];
                       if (!weight) return null;
                       const score = grading[label] ?? 0;
-                      const maxScore = weight.weightPct;
-                      const pct = maxScore > 0 ? Math.min(100, (score / maxScore) * 100) : 0;
+                      const maxScore = 100;
+                      const pct = Math.min(100, score);
                       const barColor = pct >= 90 ? 'bg-emerald-500' : pct >= 75 ? 'bg-blue-500' : pct >= 60 ? 'bg-amber-500' : 'bg-red-400';
 
                       return (
@@ -4248,7 +4238,7 @@ const AdminDashboard: React.FC<Props> = ({
                         <DollarSign className="w-5 h-5 text-emerald-600 shrink-0" />
                         <div>
                           <p className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wide">
-                            Incentive eligibility: {calculatedReviewScore.incentivePct}% payout
+                            Incentive eligibility: {Math.round(calculatedReviewScore.incentivePct * 100)}% payout
                           </p>
                           <p className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
                             Based on final score of {calculatedReviewScore.final}%

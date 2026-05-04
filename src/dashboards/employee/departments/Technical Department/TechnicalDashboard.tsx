@@ -585,7 +585,7 @@ const TechnicalDashboard: React.FC<Props> = ({ user, validatedStats, pendingTran
       pmChecklist: { ...formData.pmChecklist }, // Stores last checklist, but all data is in allSalesData/categoryInputs
       allSalesData: categoryInputsRef.current as any, // Snapshot at broadcast time
       ratings: {
-        ...suggestedGrades, finalScore: 0, incentivePct: 0
+        ...suggestedGrades, finalScore: currentTotalWeightedScore, incentivePct: 0
       },
       gradingConfigSignature: computeGradingConfigSignature('Technical', departmentWeights),
     };

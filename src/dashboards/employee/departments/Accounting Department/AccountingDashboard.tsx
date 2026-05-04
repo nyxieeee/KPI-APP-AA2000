@@ -458,7 +458,7 @@ const AccountingDashboard: React.FC<Props> = ({ user, validatedStats, announceme
         performance: 0,
         proficiency: 0,
         professionalism: 0,
-        finalScore: 0,
+        finalScore: currentTotalWeightedScore,
         incentivePct: 0
       },
       gradingConfigSignature: computeGradingConfigSignature('Accounting', departmentWeights),

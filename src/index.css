@@ -370,6 +370,8 @@ body.settings-open aside[aria-label="Admin sidenav"] {
    DARK MODE CSS VARIABLES
    ============================================================ */
 :root {
+  --nav-rail-expanded: 272px;
+  --nav-rail-collapsed: 76px;
   --ring-track: rgb(226 232 240);
   --ring-track-inner: rgb(241 245 249);
   --card-bg: rgb(255 255 255);

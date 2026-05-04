@@ -520,18 +520,17 @@ function buildDocument(log: Transmission, opts: LogDetailPdfOptions): jsPDF {
       y += 6;
     }
   } else {
-    pdf.setFontSize(8); pdf.setTextColor(...C.s500);
     pdf.text('No attached files.', MARGIN + 2, y + 3);
     y += 8;
   }
   y += 6;
 
-  // ── Supervisor Directive / Feedback ───────────────────────────────────────
-  const feedback = String(log.supervisorComment || 'No supervisor justification recorded.');
+  // ── Admin Feedback / Justification ───────────────────────────────────────
+  const feedback = String(log.supervisorComment || 'No admin justification recorded.');
   const fbLines  = pdf.splitTextToSize(feedback, CONTENT_WIDTH - 10);
   const fbH      = Math.max(14, fbLines.length * 4.5 + 10);
   y = checkY(pdf, y, fbH + 18);
-  y = sectionTitle(pdf, y, 'Supervisor Directive / Feedback');
+  y = sectionTitle(pdf, y, 'Admin Feedback / Justification');
   y = hRule(pdf, y);
   pdf.setFillColor(...C.aBg);
   pdf.roundedRect(MARGIN, y, CONTENT_WIDTH, fbH, 2, 2, 'F');
@@ -542,6 +541,7 @@ function buildDocument(log: Transmission, opts: LogDetailPdfOptions): jsPDF {
   pdf.setFontSize(8); pdf.setFont('helvetica', 'normal');
   pdf.setTextColor(...C.a700);
   pdf.text(fbLines, MARGIN + 7, y + 7);
+  y += fbH + 10;
 
   // ── Apply border + footer to every page ───────────────────────────────────
   const total = pdf.getNumberOfPages();
