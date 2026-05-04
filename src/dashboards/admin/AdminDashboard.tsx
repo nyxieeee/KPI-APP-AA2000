@@ -1881,8 +1881,7 @@ const AdminDashboard: React.FC<Props> = ({
                           </div>
                         );
                       })()}
-                      <div className={`text-2xl font-black tabular-nums ${emp.score >= 90 ? 'text-emerald-600' : emp.score >= 75 ? 'text-blue-600' : 'text-slate-700 dark:text-slate-300'
-                        }`}>
+                      <div className="text-2xl font-black tabular-nums text-slate-900 dark:text-slate-100">
                         {emp.score}%
                       </div>
                     </div>
@@ -1959,22 +1958,18 @@ const AdminDashboard: React.FC<Props> = ({
                           {row.current != null ? (
                             <>
                               <span>{row.current}%</span>
-                              <span className="text-[9px] font-black opacity-80" style={{ color: getGradeColorClasses(getGradeForScore(row.current).color).text.split(' ')[0].replace('text-', '') }}>
+                              <span className="text-[9px] font-black opacity-80 text-slate-400 dark:text-slate-500">
                                 {getGradeForScore(row.current).letter}
                               </span>
                             </>
                           ) : '—'}
                         </div>
-                        <div className={`flex items-center justify-center gap-1 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wide ${diff == null ? 'text-slate-300' :
-                          diff > 0 ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600' :
-                            diff < 0 ? 'bg-red-50 dark:bg-red-900/30 text-red-600' :
-                              'bg-slate-50 dark:bg-slate-900 text-slate-400 dark:text-slate-500 dark:text-slate-500'
-                          }`}>
+                        <div className={`flex items-center justify-center gap-1 px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wide ${diff == null ? 'text-slate-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100'}`}>
                           {diff != null && diff !== 0 && (diff > 0
                             ? <TrendingUp className="w-3 h-3" />
                             : <TrendingDown className="w-3 h-3" />
                           )}
-                          {diff == null ? '—' : diff > 0 ? `+${diff.toFixed(2).replace(/\.?0+$/, '')}` : diff < 0 ? `${diff.toFixed(2).replace(/\.?0+$/, '')}` : '±0'}
+                          {diff == null ? '—' : diff > 0 ? `+${diff.toFixed(2).replace(/\.?0+$/, '')}%` : diff < 0 ? `${diff.toFixed(2).replace(/\.?0+$/, '')}%` : '±0%'}
                         </div>
                       </div>
                     );
@@ -2035,8 +2030,8 @@ const AdminDashboard: React.FC<Props> = ({
                     : 0;
                   const best = Math.max(...emp.scores);
                   const worst = Math.min(...emp.scores);
-                  const barColor = emp.latestScore >= 90 ? 'bg-emerald-500' : emp.latestScore >= 75 ? 'bg-blue-500' : emp.latestScore >= 60 ? 'bg-amber-500' : 'bg-red-400';
-                  const textColor = emp.latestScore >= 90 ? 'text-emerald-600' : emp.latestScore >= 75 ? 'text-blue-600' : emp.latestScore >= 60 ? 'text-amber-600' : 'text-red-500';
+                  const barColor = 'bg-blue-600';
+                  const textColor = 'text-slate-900 dark:text-slate-100';
 
                   return (
                     <div key={emp.name} className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
@@ -2098,7 +2093,7 @@ const AdminDashboard: React.FC<Props> = ({
                         </div>
                         <div className="text-center">
                           <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 dark:text-slate-500 uppercase tracking-wide">Best</p>
-                          <p className="text-sm font-black text-emerald-600 tabular-nums">{best}%</p>
+                          <p className="text-sm font-black text-slate-700 dark:text-slate-300 tabular-nums">{best}%</p>
                         </div>
                         <div className="text-center">
                           <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 dark:text-slate-500 uppercase tracking-wide">Lowest</p>
@@ -2447,7 +2442,7 @@ const AdminDashboard: React.FC<Props> = ({
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-[9px] font-black uppercase tracking-wide text-slate-500 dark:text-slate-400 dark:text-slate-400">Active users</span>
-                <span className="text-2xl font-black text-emerald-600">
+                <span className="text-2xl font-black text-slate-900 dark:text-slate-100">
                   {totalNodes ? Math.round(activeRatio * 100) : 0}%
                 </span>
               </div>
@@ -3215,7 +3210,7 @@ const AdminDashboard: React.FC<Props> = ({
                         <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 dark:text-slate-400 uppercase tracking-[0.25em] mt-1">Category weights</p>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap justify-end">
-                        <span className={`text-[10px] font-black uppercase tracking-wide ${sumValid ? 'text-emerald-600' : 'text-amber-600'}`}>
+                        <span className="text-[10px] font-black uppercase tracking-wide text-slate-900 dark:text-slate-100">
                           Total: {deptSum}%
                         </span>
                         <button
@@ -4061,14 +4056,9 @@ const AdminDashboard: React.FC<Props> = ({
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   {/* Live score */}
-                  <div className={`flex flex-col items-center px-4 py-2 rounded-xl border ${calculatedReviewScore.final >= 90 ? 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-600' :
-                    calculatedReviewScore.final >= 75 ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-600' :
-                      calculatedReviewScore.final >= 60 ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-600' :
-                        'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-600'
-                    }`}>
+                  <div className="flex flex-col items-center px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900/40">
                     <span className="text-2xl font-black tabular-nums text-slate-900 dark:text-slate-100">{calculatedReviewScore.final}%</span>
-                    <span className={`text-[9px] font-black uppercase tracking-wide ${getGradeColorClasses(calculatedReviewScore.gradeInfo.color).text
-                      }`}>
+                    <span className="text-[9px] font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
                       {calculatedReviewScore.gradeInfo.letter} — {calculatedReviewScore.gradeInfo.label}
                     </span>
                   </div>
@@ -4127,7 +4117,7 @@ const AdminDashboard: React.FC<Props> = ({
                             }`}
                           >
                             <p className={`text-[9px] font-black uppercase tracking-tight truncate ${
-                              activeAttachmentIndex === idx ? 'text-blue-700 dark:text-blue-300' : 'text-slate-600 dark:text-slate-400'
+                              activeAttachmentIndex === idx ? 'text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400'
                             }`}>
                               {file.name}
                             </p>
@@ -4166,7 +4156,7 @@ const AdminDashboard: React.FC<Props> = ({
                       const score = grading[label] ?? 0;
                       const maxScore = 100;
                       const pct = Math.min(100, score);
-                      const barColor = pct >= 90 ? 'bg-emerald-500' : pct >= 75 ? 'bg-blue-500' : pct >= 60 ? 'bg-amber-500' : 'bg-red-400';
+                      const barColor = 'bg-blue-600';
 
                       return (
                         <div key={label} className="bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-600/80 p-4">
@@ -4234,13 +4224,13 @@ const AdminDashboard: React.FC<Props> = ({
 
                     {/* Incentive info */}
                     {calculatedReviewScore.incentivePct > 0 && (
-                      <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-600">
-                        <DollarSign className="w-5 h-5 text-emerald-600 shrink-0" />
+                      <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700">
+                        <DollarSign className="w-5 h-5 text-slate-400 shrink-0" />
                         <div>
-                          <p className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 uppercase tracking-wide">
+                          <p className="text-[10px] font-black text-slate-900 dark:text-slate-100 uppercase tracking-wide">
                             Incentive eligibility: {Math.round(calculatedReviewScore.incentivePct * 100)}% payout
                           </p>
-                          <p className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                          <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-0.5">
                             Based on final score of {calculatedReviewScore.final}%
                           </p>
                         </div>

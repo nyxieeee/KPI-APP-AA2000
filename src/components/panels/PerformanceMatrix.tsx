@@ -32,29 +32,31 @@ export const PerformanceMatrix: React.FC<Props> = ({
       <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-6 lg:p-10 border border-slate-100 dark:border-slate-700 shadow-xl relative overflow-visible flex flex-col gap-5">
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-[80px] -mr-32 -mt-32 pointer-events-none" />
 
-        {/* Header row — icon + title on left, PDF button on right, wraps cleanly on mobile */}
+        {/* Header row — icon + title on left, PDF button on right, stacks on mobile */}
         <div className="rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-[#0b1222]/90 overflow-hidden shadow-sm shrink-0">
-          <div className="flex flex-wrap items-center gap-2 px-4 py-3 sm:px-6 sm:py-4">
-            {/* Trophy icon */}
-            <div className={`flex-shrink-0 w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center border shadow-sm ${isValidated ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700 ring-2 ring-amber-200/50' : 'bg-slate-100 dark:bg-[#0d1526] border-slate-200 dark:border-slate-600'}`}>
-              <Trophy className={`w-4 h-4 sm:w-7 sm:h-7 ${isValidated ? 'text-amber-500' : 'text-slate-400 dark:text-slate-500'}`} />
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 sm:px-6 sm:py-4">
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+              {/* Trophy icon */}
+              <div className={`flex-shrink-0 w-9 h-9 sm:w-14 sm:h-14 rounded-lg sm:rounded-2xl flex items-center justify-center border shadow-sm ${isValidated ? 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700 ring-2 ring-amber-200/50' : 'bg-slate-100 dark:bg-[#0d1526] border-slate-200 dark:border-slate-600'}`}>
+                <Trophy className={`w-4 h-4 sm:w-7 sm:h-7 ${isValidated ? 'text-amber-500' : 'text-slate-400 dark:text-slate-500'}`} />
+              </div>
+
+              {/* Title — wraps on mobile instead of truncating */}
+              <div className="flex-1 min-w-0 border-l-4 border-blue-500/80 pl-3 sm:pl-5">
+                <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-0.5">KPI Overview</p>
+                <h3 className="text-sm sm:text-base lg:text-xl font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight leading-tight">{title}</h3>
+              </div>
             </div>
 
-            {/* Title — takes remaining space */}
-            <div className="flex-1 min-w-0 border-l-4 border-blue-500/80 pl-3 sm:pl-5">
-              <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-0.5">KPI Overview</p>
-              <h3 className="text-xs sm:text-base lg:text-xl font-black text-slate-900 dark:text-slate-100 uppercase tracking-tight leading-tight truncate">{title}</h3>
-            </div>
-
-            {/* PDF button — always on the right */}
+            {/* PDF button — full width on mobile, auto on desktop */}
             <button
               type="button"
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDownloadPdf(); }}
-              className="flex-shrink-0 inline-flex items-center gap-1.5 px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-xl bg-blue-600 text-white text-[10px] sm:text-xs font-black uppercase tracking-wide shadow-sm hover:bg-blue-700 active:scale-[0.99] transition"
+              className="flex-shrink-0 inline-flex items-center justify-center gap-1.5 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-blue-600 text-white text-[10px] sm:text-xs font-black uppercase tracking-wide shadow-sm hover:bg-blue-700 active:scale-[0.99] transition w-full sm:w-auto"
               title="Download yearly scorecard PDF"
             >
               <Download className="w-3.5 h-3.5 sm:w-[18px] sm:h-[18px]" />
-              <span>PDF</span>
+              <span>Download PDF</span>
             </button>
           </div>
           <div className="h-1 w-full bg-gradient-to-r from-blue-500/25 via-blue-500/10 to-transparent" />

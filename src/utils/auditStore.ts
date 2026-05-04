@@ -41,7 +41,8 @@ export function stripAttachmentPayloadFromTransmission(t: Transmission): Transmi
       name: a.name,
       type: a.type,
       size: a.size,
-      data: a.data,
+      // Omit `data` (base64 payload) to keep localStorage within quota.
+      // The attachment can be re-hydrated via `storageKey` when needed.
       storageKey: a.storageKey,
     })),
   };
@@ -61,7 +62,11 @@ function stripBucketsForStorage(buckets: AuditBuckets): AuditBuckets {
 }
 
 export function saveDepartmentBuckets(buckets: AuditBuckets) {
-  localStorage.setItem(AUDIT_BUCKETS_STORAGE_KEY, JSON.stringify(stripBucketsForStorage(buckets)));
+  try {
+    localStorage.setItem(AUDIT_BUCKETS_STORAGE_KEY, JSON.stringify(stripBucketsForStorage(buckets)));
+  } catch {
+    // Ignore quota exceeded / private-mode errors so React doesn't crash.
+  }
 }
 
 export function flattenBuckets(buckets: AuditBuckets) {

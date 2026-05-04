@@ -304,7 +304,7 @@ function YieldBlockAdminStyle({
     <div className="group/yield relative shrink-0 text-right">
       <div className="-my-1 -mr-1 cursor-help rounded-xl border border-transparent px-3 py-2 transition-colors group-hover/yield:border-blue-100 dark:border-blue-900/50 group-hover/yield:bg-blue-50 dark:bg-blue-900/30">
         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Yield</p>
-        <p className="text-[11px] font-black tabular-nums text-blue-600">
+        <p className="text-[11px] font-black tabular-nums text-slate-900 dark:text-slate-100">
           {formatYieldNumber(score)}/{cap}
         </p>
       </div>
@@ -324,7 +324,7 @@ function YieldBlockAdminStyle({
             {checkboxLabels.map((lbl, i) => (
               <li key={i} className="flex items-start justify-between gap-2 text-[11px] text-slate-700 dark:text-slate-300">
                 <span className="min-w-0 shrink font-semibold text-slate-600 dark:text-slate-400">{lbl}</span>
-                <span className="shrink-0 font-black tabular-nums text-blue-600">+{checkboxScoreVals[i] ?? 0} pts</span>
+                <span className="shrink-0 font-black tabular-nums text-slate-900 dark:text-slate-100">+{checkboxScoreVals[i] ?? 0} pts</span>
               </li>
             ))}
           </ul>
@@ -338,7 +338,7 @@ function YieldBlockAdminStyle({
                     {sec.checkpoints.map((c, i) => (
                       <li key={i} className="flex items-start justify-between gap-2 text-[11px] text-slate-700 dark:text-slate-300">
                         <span className="min-w-0 shrink text-slate-500 dark:text-slate-400">{formatCheckpointRange(c)}</span>
-                        <span className="shrink-0 font-black tabular-nums text-blue-600">{c.score} pts</span>
+                        <span className="shrink-0 font-black tabular-nums text-slate-900 dark:text-slate-100">{c.score} pts</span>
                       </li>
                     ))}
                   </ul>
@@ -359,7 +359,7 @@ function YieldBlockAdminStyle({
                       : `${c.min} – ${c.max} checked`
                     : formatCheckpointRange(c)}
                 </span>
-                <span className="shrink-0 font-black tabular-nums text-blue-600">{c.score} pts</span>
+                <span className="shrink-0 font-black tabular-nums text-slate-900 dark:text-slate-100">{c.score} pts</span>
               </li>
             ))}
           </ul>
@@ -765,7 +765,7 @@ const TechnicalCategoryAuditPanel: React.FC<TechnicalCategoryAuditPanelProps> = 
         <div className="relative z-10">
           <h4 className="mb-1 text-base font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">{category.label} — Aggregate</h4>
           <div className="flex items-baseline gap-2">
-            <p className="text-2xl font-black tabular-nums tracking-tighter text-blue-400">
+            <p className="text-2xl font-black tabular-nums tracking-tighter text-white">
               {formatYieldNumber(aggregatePts)}
             </p>
             <p className="text-sm font-black text-slate-500 dark:text-slate-400">Yield</p>
@@ -773,7 +773,7 @@ const TechnicalCategoryAuditPanel: React.FC<TechnicalCategoryAuditPanelProps> = 
         </div>
         <div className="relative z-10 text-left sm:text-right">
           <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Weighted impact (category)</p>
-          <p className="text-2xl font-black tabular-nums text-blue-400">+{weightedImpactPct.toFixed(2)}%</p>
+          <p className="text-2xl font-black tabular-nums text-white">+{weightedImpactPct.toFixed(2)}%</p>
         </div>
       </div>
     </div>

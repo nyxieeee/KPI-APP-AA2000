@@ -66,7 +66,6 @@ const Navbar: React.FC<NavbarProps> = ({ user, onClearLocalCache, registry, onUp
 
       <nav
         className={`bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 sticky top-0 z-[1000] h-16 sm:h-20 flex items-center shadow-sm dark:shadow-slate-900/50 transition-all duration-300 ease-in-out ${isSettingsOpen ? 'opacity-0 pointer-events-none select-none' : ''}`}
-        style={{ paddingLeft: railOpen ? 'var(--nav-rail-expanded)' : 'var(--nav-rail-collapsed)' }}
       >
         <div className="max-w-[1800px] w-full px-3 sm:px-4 md:px-12 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-6 md:gap-10">

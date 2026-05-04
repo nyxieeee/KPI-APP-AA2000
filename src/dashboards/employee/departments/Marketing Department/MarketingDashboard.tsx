@@ -989,7 +989,7 @@ const MarketingDashboard: React.FC<Props> = ({ user, validatedStats, pendingTran
             quarterlyStats={quarterlyStats}
             onDownloadPdf={handleDownloadPdf}
             suggestion={getScoreSuggestion(quarterlyStats?.ratings?.finalScore, (quarterlyStats?.categoryStats ?? []).map(s => ({ label: s.label, val: s.val })), quarterlyStats?.count ?? 0)}
-            variantStyles={{ excellent: 'text-blue-600', good: 'text-blue-600', solid: 'text-slate-700 dark:text-slate-300', progress: 'text-amber-600', growth: 'text-slate-600 dark:text-slate-400 dark:text-slate-400', empty: 'text-slate-500 dark:text-slate-400 dark:text-slate-400' }}
+            variantStyles={{ excellent: 'text-slate-900 dark:text-slate-100', good: 'text-slate-900 dark:text-slate-100', solid: 'text-slate-700 dark:text-slate-300', progress: 'text-slate-900 dark:text-slate-100', growth: 'text-slate-600 dark:text-slate-400', empty: 'text-slate-500 dark:text-slate-400' }}
           />
         </>
       )}
@@ -1389,7 +1389,7 @@ const MarketingDashboard: React.FC<Props> = ({ user, validatedStats, pendingTran
                                       <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 dark:text-slate-500 uppercase tracking-wide">
                                         {hasAdminCriteria ? 'Weighted impact (category)' : 'Weighted score'}
                                       </span>
-                                      <span className={`text-lg font-black tracking-tight ${totalScore >= 70 ? 'text-blue-600' : 'text-amber-600'}`}>
+                                      <span className="text-lg font-black tracking-tight text-slate-900 dark:text-slate-100">
                                         {weightedScoreText}
                                       </span>
                                     </div>

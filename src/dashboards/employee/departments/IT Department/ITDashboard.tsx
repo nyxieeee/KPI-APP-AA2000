@@ -929,7 +929,7 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
             quarterlyStats={quarterlyStats}
             onDownloadPdf={handleDownloadPdf}
             suggestion={getScoreSuggestion(quarterlyStats?.ratings?.finalScore, (quarterlyStats?.categoryStats ?? []).map(s => ({ label: s.label, val: s.val })), quarterlyStats?.count ?? 0)}
-            variantStyles={{ excellent: 'text-blue-600', good: 'text-blue-600', solid: 'text-slate-700 dark:text-slate-300', progress: 'text-amber-600', growth: 'text-slate-600 dark:text-slate-400 dark:text-slate-400', empty: 'text-slate-500 dark:text-slate-400 dark:text-slate-400' }}
+            variantStyles={{ excellent: 'text-slate-900 dark:text-slate-100', good: 'text-slate-900 dark:text-slate-100', solid: 'text-slate-700 dark:text-slate-300', progress: 'text-slate-900 dark:text-slate-100', growth: 'text-slate-600 dark:text-slate-400', empty: 'text-slate-500 dark:text-slate-400' }}
           />
         </>
       )}
@@ -1274,8 +1274,7 @@ const ITDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmissio
                             const weightedScoreText = agg
                               ? `+${agg.weightedImpactPct.toFixed(2)}%`
                               : '0.00%';
-                            const weightedScoreColor =
-                              totalScore >= 70 ? 'text-blue-600' : totalScore >= 50 ? 'text-amber-600' : 'text-rose-600';
+                            const weightedScoreColor = 'text-slate-900 dark:text-slate-100';
                             const ReviewIcon = getEmployeeCategoryIcon(catCfg?.icon);
                             return (
                               <div key={cat} className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">

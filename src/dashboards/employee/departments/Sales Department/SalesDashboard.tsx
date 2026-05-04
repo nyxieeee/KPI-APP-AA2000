@@ -994,7 +994,7 @@ const SalesDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmis
             quarterlyStats={quarterlyStats}
             onDownloadPdf={handleDownloadPdf}
             suggestion={getScoreSuggestion(quarterlyStats?.ratings?.finalScore, (quarterlyStats?.categoryStats ?? []).map(s => ({ label: s.label, val: s.val })), quarterlyStats?.count ?? 0)}
-            variantStyles={{ excellent: 'text-blue-600', good: 'text-blue-600', solid: 'text-slate-700 dark:text-slate-300', progress: 'text-amber-600', growth: 'text-slate-600 dark:text-slate-400 dark:text-slate-400', empty: 'text-slate-500 dark:text-slate-400 dark:text-slate-400' }}
+            variantStyles={{ excellent: 'text-slate-900 dark:text-slate-100', good: 'text-slate-900 dark:text-slate-100', solid: 'text-slate-700 dark:text-slate-300', progress: 'text-slate-900 dark:text-slate-100', growth: 'text-slate-600 dark:text-slate-400', empty: 'text-slate-500 dark:text-slate-400' }}
           />
         </>
       )}
@@ -1311,7 +1311,7 @@ const SalesDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmis
                     )}
                     {activeStep === 2 && (() => {
                       const getWeightNum = (w: string) => parseInt(w.replace('%', ''), 10) || 0;
-                      const getWeightedScoreColor = (score: number) => score >= 85 ? 'text-emerald-600' : score >= 70 ? 'text-blue-600' : score >= 50 ? 'text-amber-600' : 'text-rose-600';
+                      const getWeightedScoreColor = (score: number) => 'text-slate-900 dark:text-slate-100';
 
                       return (
                         <div className="space-y-8 animate-in slide-in-from-left-4 fade-in duration-500 pb-10">
@@ -1336,8 +1336,7 @@ const SalesDashboard: React.FC<Props> = ({ user, validatedStats, pendingTransmis
                               if (hasAdminCriteria && catCfg) {
                                 const agg = computeCategoryAggregateMetrics(catCfg, checklist as any);
                                 const weightedScoreText = `+${agg.weightedImpactPct.toFixed(2)}%`;
-                                const weightedScoreColor =
-                                  agg.aggregatePts >= 85 ? 'text-emerald-600' : agg.aggregatePts >= 70 ? 'text-blue-600' : 'text-amber-600';
+                                const weightedScoreColor = 'text-slate-900 dark:text-slate-100';
                                 const ReviewIcon = getEmployeeCategoryIcon(catCfg?.icon);
                                 return (
                                   <div key={cat.name} className="bg-white dark:bg-slate-800 p-5 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm">
