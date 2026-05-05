@@ -97,12 +97,13 @@ export async function fetchPortalSessionByToken(sessionToken: string): Promise<P
     : allPrefixes;
 
   const encodedToken = encodeURIComponent(token);
+  const apiKey = import.meta.env.VITE_API_KEY;
   const timeoutMs = getSessionLookupTimeoutMs();
   const timeoutMsWithBuffer = Math.max(3000, timeoutMs);
 
   for (const base of bases) {
     for (const sessionPrefix of orderedPrefixes) {
-      const url = `${base}${prefix}${sessionPrefix}/${encodedToken}`;
+      const url = `${base}${prefix}${sessionPrefix}/${encodedToken}${apiKey ? `?api_key=${encodeURIComponent(apiKey)}` : ''}`;
       const controller = new AbortController();
       const timeoutId = window.setTimeout(() => controller.abort(), timeoutMsWithBuffer);
       try {

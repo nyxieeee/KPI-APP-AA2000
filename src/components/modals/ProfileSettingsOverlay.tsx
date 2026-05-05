@@ -20,9 +20,11 @@ import {
   Building2,
   Activity,
   Monitor,
+  LogOut,
 } from 'lucide-react';
 import { User as UserType, UserRole } from '../../types';
 import { useDarkMode } from '../../contexts/DarkModeContext';
+import { useAuthActions } from '../../contexts/AuthActionsContext';
 
 interface ProfileSettingsOverlayProps {
   user: UserType;
@@ -44,6 +46,7 @@ const ProfileSettingsOverlay: React.FC<ProfileSettingsOverlayProps> = ({
   const [activeTab, setActiveTab] = useState<Tab>('profile');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { isDark, toggle: toggleDark } = useDarkMode();
+  const { logout } = useAuthActions();
 
   // Personal info
   const [fullName, setFullName] = useState(user.name);
@@ -157,9 +160,18 @@ const ProfileSettingsOverlay: React.FC<ProfileSettingsOverlayProps> = ({
             <button
               onClick={() => setSidebarCollapsed(false)}
               title="Expand sidebar"
-              className="flex justify-center items-center p-2.5 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-white transition-all"
+              className="flex justify-center items-center p-2.5 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-white transition-all mb-2"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+
+            {/* Sign out */}
+            <button
+              onClick={logout}
+              title="Sign out"
+              className="flex justify-center items-center p-2.5 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-all"
+            >
+              <LogOut className="w-4 h-4" />
             </button>
           </>
         ) : (
@@ -217,6 +229,15 @@ const ProfileSettingsOverlay: React.FC<ProfileSettingsOverlayProps> = ({
               <X className="w-4 h-4" />
               Close
             </button>
+
+            {/* Sign out */}
+            <button
+              onClick={logout}
+              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-300 transition-all w-full mt-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign out
+            </button>
           </>
         )}
       </div>
@@ -229,12 +250,20 @@ const ProfileSettingsOverlay: React.FC<ProfileSettingsOverlayProps> = ({
             <h2 className="text-base font-black text-slate-900 dark:text-white">Profile</h2>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">Your account and settings</p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={logout}
+              className="p-2 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-all"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Mobile tab bar */}
